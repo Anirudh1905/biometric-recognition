@@ -65,7 +65,10 @@ def prepare_data(cfg: DictConfig, output_dir: str) -> dict:
         json.dump(metadata, f, indent=2)
 
     logging.info(f"Data preparation complete. Splits saved to {splits_path}")
-    logging.info(f"Train: {len(train_indices)}, Val: {len(val_indices)}, Test: {len(test_indices)}")
+    logging.info(
+        f"Train: {len(train_indices)}, Val: {len(val_indices)}, "
+        f"Test: {len(test_indices)}"
+    )
 
     return metadata
 
@@ -75,7 +78,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, help="Path to config.yaml")
-    parser.add_argument("--output-dir", required=True, help="Output directory for splits")
+    parser.add_argument(
+        "--output-dir", required=True, help="Output directory for splits"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)

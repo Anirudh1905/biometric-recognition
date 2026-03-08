@@ -122,4 +122,6 @@ def get_classification_report(
     Returns:
         Classification report as dict or string
     """
-    return classification_report(y_true, y_pred, output_dict=output_dict, zero_division=0)
+    return classification_report(
+        y_true, y_pred, output_dict=output_dict, zero_division=0
+    )

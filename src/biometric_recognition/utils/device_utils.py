@@ -1,7 +1,8 @@
 """Device utilities for PyTorch."""
 
-import torch
 import logging
+
+import torch
 
 
 def get_device(device_preference: str = "auto") -> torch.device:
@@ -40,7 +41,7 @@ def print_device_info() -> None:
 
     # CUDA info
     if torch.cuda.is_available():
-        logging.info(f"CUDA available: Yes")
+        logging.info("CUDA available: Yes")
         logging.info(f"CUDA version: {torch.version.cuda}")
         logging.info(f"Number of GPUs: {torch.cuda.device_count()}")
         for i in range(torch.cuda.device_count()):

@@ -11,3 +11,4 @@ docs/
 examples/
 outputs/
 checkpoints/
+.env

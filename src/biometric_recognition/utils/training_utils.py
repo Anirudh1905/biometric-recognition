@@ -9,7 +9,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from biometric_recognition.utils.model_utils import move_batch_to_device, save_checkpoint
+from biometric_recognition.utils.model_utils import (
+    move_batch_to_device,
+    save_checkpoint,
+)
 
 
 def train_one_epoch(
@@ -81,7 +84,7 @@ def validate(
 
     Returns:
         If collect_predictions=False: Tuple of (average_loss, accuracy_percentage)
-        If collect_predictions=True: Tuple of (average_loss, accuracy_percentage, predictions, labels)
+        If collect_predictions=True: Tuple of (avg_loss, accuracy, predictions, labels)
     """
     model.eval()
     total_loss = 0.0

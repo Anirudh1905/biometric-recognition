@@ -115,7 +115,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, help="Path to config.yaml")
     parser.add_argument("--model", required=True, help="Path to model checkpoint")
-    parser.add_argument("--results", required=True, help="Path to evaluation_results.json")
+    parser.add_argument(
+        "--results", required=True, help="Path to evaluation_results.json"
+    )
     parser.add_argument("--plots-dir", required=True, help="Directory with plots")
     parser.add_argument("--run-id", default=None, help="Optional run ID")
     args = parser.parse_args()

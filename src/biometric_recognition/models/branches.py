@@ -1,9 +1,8 @@
 """Neural network branches for different biometric modalities."""
 
+import timm
 import torch
 import torch.nn as nn
-import timm
-from typing import Tuple
 
 
 class FingerprintBranch(nn.Module):

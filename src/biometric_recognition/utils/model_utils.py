@@ -2,11 +2,10 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import torch
-import torch.nn as nn
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from biometric_recognition.models import MultimodalBiometricModel
 from biometric_recognition.utils.aws_utils import S3Utils
@@ -127,9 +126,8 @@ def load_model_from_checkpoint(
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    logging.info(
-        f"Model loaded successfully. Validation accuracy: {checkpoint.get('val_accuracy', 'N/A')}"
-    )
+    val_acc = checkpoint.get("val_accuracy", "N/A")
+    logging.info(f"Model loaded successfully. Validation accuracy: {val_acc}")
     return model
 
 

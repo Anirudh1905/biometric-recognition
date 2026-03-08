@@ -1,10 +1,11 @@
 """Multimodal biometric recognition model."""
 
+from typing import Dict
+
 import torch
 import torch.nn as nn
-from typing import Dict, Any
 
-from .branches import FingerprintBranch, IrisBranch, FusionModule
+from .branches import FingerprintBranch, FusionModule, IrisBranch
 
 
 class MultimodalBiometricModel(nn.Module):

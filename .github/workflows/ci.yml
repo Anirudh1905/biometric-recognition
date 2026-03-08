@@ -10,6 +10,7 @@ env:
   PYTHON_VERSION: "3.12"
   AWS_REGION: us-east-1
   ECR_REPOSITORY: biometric-recognition
+  ECR_REGISTRY: 746630811636.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
   lint:
@@ -111,7 +112,6 @@ jobs:
 
       - name: Build and push image to ECR
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .

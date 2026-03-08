@@ -9,10 +9,10 @@ import torch.nn as nn
 from omegaconf import OmegaConf
 
 from biometric_recognition.utils import (
-    get_device,
-    load_splits,
     create_data_loaders,
     create_model,
+    get_device,
+    load_splits,
     train_loop,
 )
 
@@ -102,7 +102,9 @@ def train_model(
         "final_val_accuracy": history["val_accuracies"][-1],
     }
 
-    logging.info(f"Training complete. Best val accuracy: {history['best_val_accuracy']:.2f}%")
+    logging.info(
+        f"Training complete. Best val accuracy: {history['best_val_accuracy']:.2f}%"
+    )
     return result
 
 
