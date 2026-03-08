@@ -3,7 +3,6 @@ name = "biometric-recognition"
 version = "0.1.0"
 description = "Multimodal Biometric Recognition System using Fingerprints and Iris"
 authors = ["Your Name <your.email@example.com>"]
-readme = "README.md"
 packages = [{include = "biometric_recognition", from = "src"}]
 
 [tool.poetry.dependencies]
