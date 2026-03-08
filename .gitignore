@@ -1,0 +1,13 @@
+biometric_data/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.vscode/
+.claude/
+docs/
+examples/
+outputs/
+checkpoints/

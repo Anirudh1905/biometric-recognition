@@ -1,0 +1,45 @@
+# Simple Biometric Recognition Configuration
+defaults:
+  - _self_
+
+# Dataset settings
+data:
+  path: "s3://world-model-v1/biometric_data/"  # Local path (e.g., "data/") OR S3 URI (e.g., "s3://my-bucket/datasets/")
+  num_people: 45
+  fingerprint_size: [128, 128]  # [height, width]
+  iris_size: [64, 64]           # [height, width]
+  batch_size: 8
+  num_workers: 8
+  preload_images: true  # Pre-load all images into memory for faster training
+  cache_dir: null  # Local cache directory for S3 downloads (null = use system temp)
+
+# AWS settings (only needed if using S3 URIs in data.path or model storage)
+aws:
+  region: "us-east-1"  # AWS region
+
+# S3 Model Storage
+s3:
+  model_bucket: "world-model-v1"  # S3 bucket for model storage
+  model_prefix: "biometric_model/"  # S3 prefix/path for models
+
+# API Configuration (for inference.py)
+api:
+  url: "http://localhost:8000"  # API server URL
+
+# Model settings (matching original notebook exactly)
+model:
+  fingerprint_feature_dim: 1280  # MobileNetV2 output features
+  iris_feature_dim: 32           # GlobalAveragePooling from 32 conv filters (notebook exact)
+  fusion_hidden_dim: 128         # Dense layer as in notebook
+  dropout: 0.5                   # Same as notebook
+
+# Training settings (matching original notebook exactly)
+training:
+  epochs: 10                    # Same as notebook (EPOCHS = 50)
+  learning_rate: 0.0001          # Same as notebook (1e-4)
+  device: "auto"  # auto, cpu, cuda, mps
+
+# Output paths
+output_dir: "./outputs"
+checkpoint_dir: "./checkpoints"
+seed: 42
