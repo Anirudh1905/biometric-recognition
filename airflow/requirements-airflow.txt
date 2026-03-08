@@ -19,3 +19,6 @@ tqdm>=4.65.0
 
 # AWS S3 support
 boto3>=1.34.0
+
+# Experiment tracking
+mlflow==2.15.1

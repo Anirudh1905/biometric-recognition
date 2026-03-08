@@ -6,11 +6,12 @@ from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 
-from biometric_recognition.utils import (
+from biometric_recognition.utils.data_utils import (
     create_dataset,
     create_stratified_splits,
     save_splits,
 )
+from biometric_recognition.utils.logging_utils import setup_logging
 
 
 def prepare_data(cfg: DictConfig, output_dir: str) -> dict:
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    setup_logging()
     cfg = OmegaConf.load(args.config)
     result = prepare_data(cfg, args.output_dir)
     print(json.dumps(result, indent=2))

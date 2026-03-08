@@ -8,7 +8,6 @@ import torch
 from omegaconf import DictConfig
 
 from biometric_recognition.models import MultimodalBiometricModel
-from biometric_recognition.utils.aws_utils import S3Utils
 from biometric_recognition.utils.device_utils import get_device
 
 
@@ -91,6 +90,8 @@ def load_model_from_checkpoint(
     # Download model if it's an S3 URI
     local_model_path = checkpoint_path
     if checkpoint_path.startswith("s3://"):
+        from biometric_recognition.utils.aws_utils import S3Utils
+
         s3_utils = S3Utils()
         local_model_path = "./tmp_model.pth"
         s3_utils.download_from_s3(checkpoint_path, local_model_path)

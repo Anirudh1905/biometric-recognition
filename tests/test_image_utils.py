@@ -1,18 +1,14 @@
 """Tests for image_utils module."""
 
 import base64
-import tempfile
-from pathlib import Path
 
-import numpy as np
 import pytest
 import torch
-from PIL import Image
 
 from biometric_recognition.utils.image_utils import (
     image_file_to_base64,
-    preprocess_image,
     prepare_batch_from_images,
+    preprocess_image,
 )
 
 

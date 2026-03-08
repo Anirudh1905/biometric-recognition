@@ -8,16 +8,21 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from biometric_recognition.utils import (
-    create_data_loaders,
-    create_model,
+from biometric_recognition.utils.data_utils import create_data_loaders, load_splits
+from biometric_recognition.utils.device_utils import get_device
+from biometric_recognition.utils.logging_utils import setup_logging
+from biometric_recognition.utils.metrics_utils import (
     get_classification_report,
-    get_device,
-    load_splits,
     plot_confusion_matrix,
     plot_training_history,
-    validate,
 )
+from biometric_recognition.utils.mlflow_utils import (
+    log_artifact,
+    log_metrics,
+    mlflow_run,
+)
+from biometric_recognition.utils.model_utils import create_model
+from biometric_recognition.utils.training_utils import validate
 
 
 def evaluate_model(
@@ -135,9 +140,30 @@ if __name__ == "__main__":
         "--history", required=True, help="Path to training_history.json"
     )
     parser.add_argument("--output-dir", required=True, help="Output directory")
+    parser.add_argument("--run-id", default=None, help="Run ID for experiment tracking")
     args = parser.parse_args()
 
-    result = evaluate_model(
-        args.config, args.splits, args.model, args.history, args.output_dir
-    )
+    setup_logging()
+    cfg = OmegaConf.load(args.config)
+
+    with mlflow_run(
+        experiment_name="biometric-recognition",
+        run_name=f"evaluate-{args.run_id}" if args.run_id else None,
+        cfg=cfg,
+        tags={"stage": "evaluation", "run_id": args.run_id} if args.run_id else None,
+    ):
+        result = evaluate_model(
+            args.config, args.splits, args.model, args.history, args.output_dir
+        )
+        log_metrics(
+            {
+                "test_accuracy": result["test_accuracy"],
+                "test_loss": result["test_loss"],
+                "best_val_accuracy": result["best_val_accuracy"],
+            }
+        )
+        log_artifact(result["results_path"])
+        log_artifact(result["history_plot_path"])
+        log_artifact(result["confusion_matrix_path"])
+
     print(json.dumps(result, indent=2))

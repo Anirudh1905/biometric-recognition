@@ -12,21 +12,24 @@ from PIL import Image
 
 from biometric_recognition.api.schema import HealthResponse, PredictionResponse
 from biometric_recognition.models import MultimodalBiometricModel
-from biometric_recognition.utils import (
-    get_device,
+from biometric_recognition.utils.device_utils import get_device
+from biometric_recognition.utils.image_utils import prepare_batch_from_images
+from biometric_recognition.utils.logging_utils import setup_logging
+from biometric_recognition.utils.model_utils import (
     get_model_info,
     load_model_from_checkpoint,
     predict_batch,
-    prepare_batch_from_images,
 )
 
 # Global model instance
 model_instance = None
 model_path = None
 device = None
-os.environ[
-    "MODEL_PATH"
-] = "s3://world-model-v1/biometric_model/20260308_172116/model.pth"
+
+# Default model path - can be overridden by MODEL_PATH env var
+# os.environ.setdefault(
+#     "MODEL_PATH", "s3://world-model-v1/biometric_model/20260308_172116/model.pth"
+# )
 
 
 def get_model() -> MultimodalBiometricModel:
@@ -43,7 +46,7 @@ async def lifespan(app: FastAPI):
 
     # Startup
     # Configure logging
-    logging.basicConfig(level=logging.INFO)
+    setup_logging()
 
     # Model configuration from environment variables
     model_path = os.getenv("MODEL_PATH", "checkpoints/best_model.pth")

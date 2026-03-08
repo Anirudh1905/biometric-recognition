@@ -13,9 +13,10 @@ Pipeline stages:
 
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.operators.bash import BashOperator
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
+
+from airflow import DAG
 
 # Default arguments for the DAG
 default_args = {
@@ -39,6 +40,12 @@ BASE_OUTPUT_DIR = Variable.get(
 PYTHON_CMD = "python -m"
 WORKING_DIR = "/opt/airflow"
 
+# Common environment variables for all tasks
+TASK_ENV = {
+    "PYTHONPATH": f"{WORKING_DIR}/src",
+    "MLFLOW_TRACKING_URI": "http://mlflow:5000",
+}
+
 
 # Create the DAG
 with DAG(
@@ -50,7 +57,6 @@ with DAG(
     catchup=False,
     tags=["ml", "training", "biometric"],
 ) as dag:
-
     # Use execution timestamp as run_id for unique directories
     run_id = "{{ ts_nodash }}"
     run_dir = f"{BASE_OUTPUT_DIR}/{run_id}"
@@ -76,7 +82,7 @@ with DAG(
                 --config {CONFIG_PATH} \\
                 --output-dir {data_prep_dir}
         """,
-        env={"PYTHONPATH": f"{WORKING_DIR}/src"},
+        env=TASK_ENV,
     )
 
     # Task 2: Model Training
@@ -87,9 +93,10 @@ with DAG(
             {PYTHON_CMD} biometric_recognition.pipeline.train \\
                 --config {config_path} \\
                 --splits {splits_path} \\
-                --checkpoint-dir {checkpoint_dir}
+                --checkpoint-dir {checkpoint_dir} \\
+                --run-id {run_id}
         """,
-        env={"PYTHONPATH": f"{WORKING_DIR}/src"},
+        env=TASK_ENV,
         execution_timeout=timedelta(hours=4),  # Training can take a while
     )
 
@@ -103,9 +110,10 @@ with DAG(
                 --splits {splits_path} \\
                 --model {best_model_path} \\
                 --history {history_path} \\
-                --output-dir {eval_dir}
+                --output-dir {eval_dir} \\
+                --run-id {run_id}
         """,
-        env={"PYTHONPATH": f"{WORKING_DIR}/src"},
+        env=TASK_ENV,
     )
 
     # Task 4: Upload Artifacts to S3
@@ -120,7 +128,7 @@ with DAG(
                 --plots-dir {eval_dir} \\
                 --run-id {run_id}
         """,
-        env={"PYTHONPATH": f"{WORKING_DIR}/src"},
+        env=TASK_ENV,
     )
 
     # Define task dependencies

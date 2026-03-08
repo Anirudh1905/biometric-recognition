@@ -8,13 +8,17 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from biometric_recognition.utils import (
-    create_data_loaders,
-    create_model,
-    get_device,
-    load_splits,
-    train_loop,
+from biometric_recognition.utils.data_utils import create_data_loaders, load_splits
+from biometric_recognition.utils.device_utils import get_device
+from biometric_recognition.utils.logging_utils import setup_logging
+from biometric_recognition.utils.mlflow_utils import (
+    log_artifact,
+    log_metrics,
+    log_model,
+    mlflow_run,
 )
+from biometric_recognition.utils.model_utils import create_model
+from biometric_recognition.utils.training_utils import train_loop
 
 
 def train_model(
@@ -94,6 +98,9 @@ def train_model(
     with open(history_path, "w") as f:
         json.dump(history, f, indent=2)
 
+    # Log model to MLflow
+    log_model(model, "model")
+
     result = {
         "best_model_path": str(checkpoint_path / "best_model.pth"),
         "final_model_path": str(checkpoint_path / "final_model.pth"),
@@ -116,7 +123,26 @@ if __name__ == "__main__":
     parser.add_argument("--splits", required=True, help="Path to data_splits.json")
     parser.add_argument("--checkpoint-dir", required=True, help="Checkpoint directory")
     parser.add_argument("--resume", default=None, help="Resume from checkpoint")
+    parser.add_argument("--run-id", default=None, help="Run ID for experiment tracking")
     args = parser.parse_args()
 
-    result = train_model(args.config, args.splits, args.checkpoint_dir, args.resume)
+    setup_logging()
+    cfg = OmegaConf.load(args.config)
+
+    with mlflow_run(
+        experiment_name="biometric-recognition",
+        run_name=f"train-{args.run_id}" if args.run_id else None,
+        cfg=cfg,
+        tags={"stage": "training", "run_id": args.run_id} if args.run_id else None,
+    ):
+        result = train_model(args.config, args.splits, args.checkpoint_dir, args.resume)
+        log_metrics(
+            {
+                "best_val_accuracy": result["best_val_accuracy"],
+                "final_val_accuracy": result["final_val_accuracy"],
+            }
+        )
+        log_artifact(result["best_model_path"])
+        log_artifact(result["history_path"])
+
     print(json.dumps(result, indent=2))

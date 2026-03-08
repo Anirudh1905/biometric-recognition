@@ -12,6 +12,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
     AWS_REGION: ${AWS_REGION:-us-east-1}
     PYTHONPATH: /opt/airflow/src
+    MLFLOW_TRACKING_URI: http://mlflow:5000
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./src:/opt/airflow/src
@@ -40,6 +41,28 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.15.1
+    container_name: mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root mlflow-artifacts:/artifacts
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   airflow-init:
     <<: *airflow-common
@@ -101,3 +124,4 @@ volumes:
   postgres-db:
   airflow-logs:
   pipeline-outputs:
+  mlflow-data:

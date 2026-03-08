@@ -5,8 +5,8 @@ from pydantic import ValidationError
 
 from biometric_recognition.api.schema import (
     BiometricData,
-    PredictionResponse,
     HealthResponse,
+    PredictionResponse,
 )
 
 

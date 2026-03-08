@@ -1,14 +1,13 @@
 """Tests for model_utils module."""
 
-import pytest
 import torch
 
+from biometric_recognition.models import MultimodalBiometricModel
 from biometric_recognition.utils.model_utils import (
-    move_batch_to_device,
     get_model_info,
+    move_batch_to_device,
     save_checkpoint,
 )
-from biometric_recognition.models import MultimodalBiometricModel
 
 
 class TestMoveBatchToDevice:

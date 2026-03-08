@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from biometric_recognition.utils.mlflow_utils import log_metrics
 from biometric_recognition.utils.model_utils import (
     move_batch_to_device,
     save_checkpoint,
@@ -173,6 +174,17 @@ def train_loop(
             f"Epoch {epoch+1}/{epochs} - "
             f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, "
             f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%"
+        )
+
+        # Log to MLflow (no-op if no active run)
+        log_metrics(
+            {
+                "train_loss": train_loss,
+                "train_accuracy": train_acc,
+                "val_loss": val_loss,
+                "val_accuracy": val_acc,
+            },
+            step=epoch,
         )
 
         # Save best model

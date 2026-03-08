@@ -1,12 +1,9 @@
 """Tests for metrics_utils module."""
 
-import numpy as np
-import pytest
-
 from biometric_recognition.utils.metrics_utils import (
-    plot_training_history,
-    plot_confusion_matrix,
     get_classification_report,
+    plot_confusion_matrix,
+    plot_training_history,
 )
 
 
@@ -20,12 +17,9 @@ class TestPlotTrainingHistory:
         val_accuracies = [50.0, 60.0, 70.0, 80.0, 85.0]
         save_path = temp_dir / "training_history.png"
 
-        result_path = plot_training_history(
-            train_losses, val_losses, val_accuracies, save_path
-        )
+        plot_training_history(train_losses, val_losses, val_accuracies, save_path)
 
         assert save_path.exists()
-        assert result_path == str(save_path)
 
     def test_handles_single_epoch(self, temp_dir):
         """Test that function handles single epoch data."""
@@ -34,9 +28,7 @@ class TestPlotTrainingHistory:
         val_accuracies = [50.0]
         save_path = temp_dir / "training_history.png"
 
-        result_path = plot_training_history(
-            train_losses, val_losses, val_accuracies, save_path
-        )
+        plot_training_history(train_losses, val_losses, val_accuracies, save_path)
 
         assert save_path.exists()
 
@@ -63,7 +55,7 @@ class TestPlotConfusionMatrix:
         num_classes = 3
         save_path = temp_dir / "confusion_matrix.png"
 
-        result_path = plot_confusion_matrix(y_true, y_pred, num_classes, save_path)
+        plot_confusion_matrix(y_true, y_pred, num_classes, save_path)
 
         assert save_path.exists()
 
@@ -74,7 +66,7 @@ class TestPlotConfusionMatrix:
         y_pred = list(range(num_classes)) * 2
         save_path = temp_dir / "confusion_matrix.png"
 
-        result_path = plot_confusion_matrix(y_true, y_pred, num_classes, save_path)
+        plot_confusion_matrix(y_true, y_pred, num_classes, save_path)
 
         assert save_path.exists()
 

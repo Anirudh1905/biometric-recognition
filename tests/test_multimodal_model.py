@@ -1,6 +1,5 @@
 """Tests for multimodal model module."""
 
-import pytest
 import torch
 
 from biometric_recognition.models.multimodal_model import MultimodalBiometricModel

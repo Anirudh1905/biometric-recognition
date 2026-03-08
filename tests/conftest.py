@@ -18,7 +18,7 @@ def device():
 
 @pytest.fixture
 def sample_fingerprint_tensor():
-    """Create a sample fingerprint tensor (batch_size=1, channels=3, height=128, width=128)."""
+    """Create a sample fingerprint tensor (1, 3, 128, 128)."""
     return torch.randn(1, 3, 128, 128)
 
 
