@@ -1,6 +1,6 @@
 # Multimodal Biometric Recognition System
 
-A PyTorch-based multimodal biometric recognition system that uses fingerprints and iris images for person identification. This project is a modular, production-ready implementation based on the original Kaggle notebook.
+A PyTorch-based multimodal biometric recognition system that uses fingerprints and iris images for person identification.
 
 ## Features
 

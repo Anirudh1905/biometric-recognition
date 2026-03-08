@@ -1,12 +1,11 @@
 """Tests for model branches module."""
 
-import pytest
 import torch
 
 from biometric_recognition.models.branches import (
     FingerprintBranch,
-    IrisBranch,
     FusionModule,
+    IrisBranch,
 )
 
 
@@ -96,7 +95,9 @@ class TestIrisBranch:
         """Test that iris branch parameters require gradients."""
         branch = IrisBranch()
 
-        trainable_params = sum(p.numel() for p in branch.parameters() if p.requires_grad)
+        trainable_params = sum(
+            p.numel() for p in branch.parameters() if p.requires_grad
+        )
         assert trainable_params > 0
 
 

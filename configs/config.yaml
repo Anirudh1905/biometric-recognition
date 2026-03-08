@@ -26,17 +26,17 @@ s3:
 api:
   url: "http://localhost:8000"  # API server URL
 
-# Model settings (matching original notebook exactly)
+# Model settings
 model:
   fingerprint_feature_dim: 1280  # MobileNetV2 output features
-  iris_feature_dim: 32           # GlobalAveragePooling from 32 conv filters (notebook exact)
-  fusion_hidden_dim: 128         # Dense layer as in notebook
-  dropout: 0.5                   # Same as notebook
+  iris_feature_dim: 32           # GlobalAveragePooling from 32 conv filters
+  fusion_hidden_dim: 128         # Dense layer
+  dropout: 0.5
 
-# Training settings (matching original notebook exactly)
+# Training settings
 training:
-  epochs: 10                    # Same as notebook (EPOCHS = 50)
-  learning_rate: 0.0001          # Same as notebook (1e-4)
+  epochs: 10
+  learning_rate: 0.0001
   device: "auto"  # auto, cpu, cuda, mps
 
 # Output paths

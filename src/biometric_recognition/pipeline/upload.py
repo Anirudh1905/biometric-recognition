@@ -8,6 +8,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from biometric_recognition.utils.aws_utils import S3Utils
+from biometric_recognition.utils.logging_utils import setup_logging
 
 
 def upload_artifacts(
@@ -122,6 +123,7 @@ if __name__ == "__main__":
     parser.add_argument("--run-id", default=None, help="Optional run ID")
     args = parser.parse_args()
 
+    setup_logging()
     result = upload_artifacts(
         args.config, args.model, args.results, args.plots_dir, args.run_id
     )

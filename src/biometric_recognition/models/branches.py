@@ -37,7 +37,7 @@ class FingerprintBranch(nn.Module):
             for param in self.backbone.parameters():
                 param.requires_grad = False
 
-        # No projection layer - use MobileNetV2 features directly (matching notebook)
+        # No projection layer - use MobileNetV2 features directly
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through fingerprint branch.
@@ -48,7 +48,7 @@ class FingerprintBranch(nn.Module):
         Returns:
             Feature vector [batch_size, 1280] - MobileNetV2 output
         """
-        # Return MobileNetV2 features directly (matching notebook)
+        # Return MobileNetV2 features directly
         return self.backbone(x)
 
 
@@ -63,17 +63,17 @@ class IrisBranch(nn.Module):
         """
         super().__init__()
 
-        # Match notebook exactly: only 2 conv layers + global avg pooling
+        # 2 conv layers + global avg pooling
         self.conv_layers = nn.Sequential(
-            # First convolutional block (matches notebook Conv2D(16, 3x3))
+            # First convolutional block
             nn.Conv2d(1, 16, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            # Second convolutional block (matches notebook Conv2D(32, 3x3))
+            # Second convolutional block
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
-            # Global average pooling (matches notebook GlobalAveragePooling2D)
+            # Global average pooling
             nn.AdaptiveAvgPool2d((1, 1)),  # 16x16 -> 1x1, outputs 32 features
         )
 
@@ -84,7 +84,7 @@ class IrisBranch(nn.Module):
             x: Input iris images [batch_size, 1, height, width]
 
         Returns:
-            Feature vector [batch_size, 32] (matching notebook exactly)
+            Feature vector [batch_size, 32]
         """
         features = self.conv_layers(x)
         # After global avg pooling: [batch_size, 32, 1, 1] -> [batch_size, 32]

@@ -1,8 +1,6 @@
 """Data loading utilities for training and pipeline tasks."""
 
 import json
-import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -72,11 +70,6 @@ def create_stratified_splits(
     return train_indices, val_indices, test_indices
 
 
-def is_running_in_airflow() -> bool:
-    """Check if running inside an Airflow task."""
-    return os.environ.get("AIRFLOW_CTX_DAG_ID") is not None
-
-
 def create_data_loader(
     dataset: BiometricDataset,
     indices: list[int],
@@ -96,11 +89,6 @@ def create_data_loader(
     Returns:
         Configured DataLoader
     """
-    # Use num_workers=0 in Airflow to avoid "daemonic processes" error
-    if is_running_in_airflow():
-        num_workers = 0
-        logging.info("Running in Airflow - using num_workers=0 for DataLoader")
-
     subset = Subset(dataset, indices)
     return DataLoader(
         subset,

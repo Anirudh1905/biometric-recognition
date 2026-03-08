@@ -21,7 +21,7 @@ COPY pyproject.toml poetry.lock ./
 COPY --chmod=755 src/ ./src/
 RUN pip install poetry && \
     poetry config virtualenvs.in-project true && \
-    poetry install --only=main
+    poetry install --with=api --without=dev,pipeline
 
 USER app
 

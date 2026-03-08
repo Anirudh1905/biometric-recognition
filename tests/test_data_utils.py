@@ -1,36 +1,11 @@
 """Tests for data_utils module."""
 
 import json
-import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from biometric_recognition.utils.data_utils import (
-    is_running_in_airflow,
-    save_splits,
-    load_splits,
-)
-
-
-class TestIsRunningInAirflow:
-    """Tests for is_running_in_airflow function."""
-
-    def test_returns_false_when_not_in_airflow(self):
-        """Test that function returns False when not in Airflow environment."""
-        # Ensure the env var is not set
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove the specific key if it exists
-            os.environ.pop("AIRFLOW_CTX_DAG_ID", None)
-            result = is_running_in_airflow()
-        assert result is False
-
-    def test_returns_true_when_in_airflow(self):
-        """Test that function returns True when in Airflow environment."""
-        with patch.dict(os.environ, {"AIRFLOW_CTX_DAG_ID": "test_dag"}):
-            result = is_running_in_airflow()
-        assert result is True
+from biometric_recognition.utils.data_utils import load_splits, save_splits
 
 
 class TestSaveSplits:

@@ -5,7 +5,11 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
-from .branches import FingerprintBranch, FusionModule, IrisBranch
+from biometric_recognition.models.branches import (
+    FingerprintBranch,
+    FusionModule,
+    IrisBranch,
+)
 
 
 class MultimodalBiometricModel(nn.Module):
