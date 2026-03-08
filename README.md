@@ -1,96 +1,518 @@
 # Multimodal Biometric Recognition System
 
-A PyTorch-based multimodal biometric recognition system that uses fingerprints and iris images for person identification.
+A PyTorch-based multimodal biometric recognition system that uses fingerprints and iris images for person identification, with MLflow experiment tracking, Airflow orchestration, and Kubernetes deployment.
 
 ## Features
 
 - **Multimodal Approach**: Combines fingerprint and iris (left & right) biometric modalities
 - **PyTorch Implementation**: Modern deep learning framework with GPU support
-- **Modular Architecture**: Clean, maintainable code structure
+- **MLflow Integration**: Experiment tracking, model versioning, and artifact management
+- **Airflow Orchestration**: Automated training pipelines with task dependencies
+- **Kubernetes Ready**: Production deployment with health checks and auto-scaling
 - **Hydra Configuration**: Flexible configuration management
-- **Production Ready**: Logging, monitoring, and error handling
+- **S3 Integration**: Cloud storage for datasets and models
 
-## Architecture
+## System Architecture
 
-The system consists of three main branches:
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Biometric Recognition System                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                   │
+│  │  Fingerprint │    │  Left Iris   │    │  Right Iris  │   Input Images    │
+│  │   (128x128)  │    │   (64x64)    │    │   (64x64)    │                   │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                   │
+│         │                   │                   │                            │
+│         ▼                   ▼                   ▼                            │
+│  ┌──────────────┐    ┌─────────────────────────────────┐                    │
+│  │ MobileNetV2  │    │     Shared Iris CNN Branch      │   Feature          │
+│  │  (pretrained)│    │   (2 Conv + GlobalAvgPool)      │   Extraction       │
+│  │  → 1280 dim  │    │        → 32 dim each            │                    │
+│  └──────┬───────┘    └──────┬───────────────┬──────────┘                    │
+│         │                   │               │                                │
+│         └───────────────────┼───────────────┘                               │
+│                             ▼                                                │
+│                   ┌─────────────────┐                                        │
+│                   │  Fusion Module  │   Feature Fusion                       │
+│                   │ (1344 → 128 dim)│   (Concatenate + Dense)                │
+│                   └────────┬────────┘                                        │
+│                            ▼                                                 │
+│                   ┌─────────────────┐                                        │
+│                   │   Classifier    │   Classification                       │
+│                   │ (128 → N classes)│                                       │
+│                   └────────┬────────┘                                        │
+│                            ▼                                                 │
+│                     Person Identity                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-1. **Fingerprint Branch**: Uses a pretrained MobileNetV2 backbone for feature extraction
-2. **Iris Branches**: Shared CNN architecture for processing left and right iris images
-3. **Fusion Module**: Combines features from all modalities for final classification
+### Model Components
+
+| Component              | Architecture                        | Output Dimension    |
+| ---------------------- | ----------------------------------- | ------------------- |
+| **Fingerprint Branch** | MobileNetV2 (pretrained, frozen)    | 1280                |
+| **Iris Branch**        | 2x Conv2D + MaxPool + GlobalAvgPool | 32 (shared for L/R) |
+| **Fusion Module**      | Linear(1344→128) + ReLU + Dropout   | 128                 |
+| **Classifier**         | Linear(128→num_classes)             | num_classes         |
 
 ## Project Structure
 
-```
+```text
 biometric-recognition/
-├── src/
-│   └── biometric_recognition/
-│       ├── data/                 # Data loading and preprocessing
-│       ├── models/              # Model architectures
-│       ├── utils/               # Utility functions
-│       ├── train.py            # Training script
-│       └── inference.py        # Inference script
-├── configs/                     # Hydra configuration files
-│   └── config.yaml             # Simple, unified configuration
-├── outputs/                     # Training outputs (created during training)
-├── checkpoints/                # Model checkpoints (created during training)
-└── pyproject.toml              # Project dependencies and configuration
+├── src/biometric_recognition/
+│   ├── api/                    # FastAPI server
+│   │   ├── serve.py           # API endpoints
+│   │   └── schema.py          # Request/response models
+│   ├── data/                   # Data loading
+│   │   ├── dataset.py         # BiometricDataset class
+│   │   └── dataset_ray.py     # Ray-based dataset loader
+│   ├── models/                 # Model architectures
+│   │   ├── branches.py        # Fingerprint, Iris, Fusion modules
+│   │   └── multimodal_model.py # Main model class
+│   ├── pipeline/               # Training pipeline tasks
+│   │   ├── data_prep.py       # Data preparation
+│   │   ├── train.py           # Model training
+│   │   ├── evaluate.py        # Model evaluation
+│   │   └── upload.py          # S3 upload
+│   ├── utils/                  # Utilities
+│   │   ├── aws_utils.py       # AWS/S3 utilities
+│   │   ├── data_utils.py      # Data utilities
+│   │   ├── device_utils.py    # Device detection (CPU/GPU/MPS)
+│   │   ├── image_utils.py     # Image processing utilities
+│   │   ├── logging_utils.py   # Logging configuration
+│   │   ├── metrics_utils.py   # Evaluation metrics
+│   │   ├── mlflow_utils.py    # MLflow tracking helpers
+│   │   ├── model_utils.py     # Model utilities
+│   │   └── training_utils.py  # Training loop
+│   └── train.py               # Main training script
+├── tests/                      # Unit tests
+├── airflow/
+│   ├── Dockerfile             # Airflow Docker image
+│   └── dags/
+│       └── biometric_training_dag.py  # Airflow DAG
+├── k8s/
+│   ├── deployment.yaml        # Kubernetes deployment
+│   └── service.yaml           # Kubernetes service
+├── configs/
+│   └── config.yaml            # Hydra configuration
+├── Dockerfile                  # API Docker image
+└── docker-compose.yml         # Docker services (Airflow, MLflow, Postgres)
 ```
 
 ## Installation
 
 ### Prerequisites
-- Python 3.12 or higher
-- Docker (for containerized deployment)
-- AWS CLI (if using S3 features)
 
-### Method 1: Local Development Setup
+- Python 3.12+
+- Docker & Docker Compose
+- AWS CLI (for S3 features)
+- kubectl (for Kubernetes deployment)
 
-1. **Install Poetry** (if not already installed):
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
+### Local Development
 
-2. **Clone and install the project**:
-   ```bash
-   git clone <repository-url>
-   cd biometric-recognition
-   poetry install
-   ```
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
 
-3. **Activate the virtual environment**:
-   ```bash
-   poetry shell
-   ```
+# Clone and install
+git clone <repository-url>
+cd biometric-recognition
+poetry install
 
-### Method 2: Docker Setup
+# Activate environment
+poetry shell
+```
 
-1. **Build and run with Docker Compose**:
-   ```bash
-   # Development
-   docker-compose --profile dev up
+## Training Pipeline
 
-   # Production
-   docker-compose --profile prod up -d
+### Architecture Overview
 
-   # Training
-   docker-compose --profile training up
-   ```
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    Training Pipeline                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌─────────┐│
+│  │ Data Prep │───▶│   Train   │───▶│ Evaluate  │───▶│ Upload  ││
+│  └───────────┘    └───────────┘    └───────────┘    └─────────┘│
+│       │                │                │                │      │
+│       ▼                ▼                ▼                ▼      │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                     MLflow Tracking                          ││
+│  │  • Parameters  • Metrics  • Artifacts  • Models              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-2. **Or build manually**:
-   ```bash
-   # Build production image
-   docker build --target production -t biometric-recognition:latest .
+### Pipeline Stages
 
-   # Run API server
-   docker run -p 8000:8000 -v ./checkpoints:/home/app/checkpoints biometric-recognition:latest
-   ```
+| Stage         | Description                             | Outputs                                      |
+| ------------- | --------------------------------------- | -------------------------------------------- |
+| **data_prep** | Create stratified train/val/test splits | `data_splits.json`, `config.yaml`            |
+| **train**     | Train model with validation             | `best_model.pth`, `training_history.json`    |
+| **evaluate**  | Evaluate on test set, generate plots    | `evaluation_results.json`, confusion matrix  |
+| **upload**    | Upload artifacts to S3                  | S3 URIs                                      |
+
+### Run Training Locally
+
+```bash
+# Using Poetry script (recommended)
+poetry run train
+
+# Or run directly
+python src/biometric_recognition/train.py
+
+# With custom parameters
+python src/biometric_recognition/train.py training.epochs=20 data.batch_size=16
+
+# Specify device
+python src/biometric_recognition/train.py training.device=cuda
+```
+
+## MLflow Integration
+
+MLflow provides experiment tracking, model versioning, and artifact storage.
+
+### MLflow Architecture
+
+```text
+┌─────────────────────────────────────────────────────┐
+│                   MLflow Server                      │
+├─────────────────────────────────────────────────────┤
+│  Tracking URI: <http://localhost:5000>              │
+│                                                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
+│  │ Experiments │  │    Runs     │  │  Artifacts  │ │
+│  │             │  │             │  │             │ │
+│  │ biometric-  │  │ • params    │  │ • models    │ │
+│  │ recognition │  │ • metrics   │  │ • plots     │ │
+│  │             │  │ • tags      │  │ • history   │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘ │
+│                                                      │
+│  Backend: SQLite    Artifacts: Local filesystem     │
+└─────────────────────────────────────────────────────┘
+```
+
+### Tracked Metrics
+
+- **Training**: `train_loss`, `train_accuracy`, `val_loss`, `val_accuracy` (per epoch)
+- **Final**: `best_val_accuracy`, `test_accuracy`, `test_loss`
+
+### Logged Artifacts
+
+- Model checkpoints (`best_model.pth`)
+- Training history (`training_history.json`)
+- Confusion matrix plot
+- Training/validation curves
+
+### Usage
+
+```python
+from biometric_recognition.utils.mlflow_utils import mlflow_run, log_metrics, log_artifact
+
+with mlflow_run(experiment_name="biometric-recognition", run_name="my-run", cfg=cfg):
+    # Training code...
+    log_metrics({"accuracy": 0.95, "loss": 0.05})
+    log_artifact("path/to/model.pth")
+```
+
+### Access MLflow UI
+
+```bash
+# Start services
+docker-compose up -d mlflow
+
+# Open browser
+open http://localhost:5000
+```
+
+## Airflow Orchestration
+
+Apache Airflow orchestrates the training pipeline as a DAG (Directed Acyclic Graph).
+
+### DAG Structure
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│              biometric_training_pipeline DAG                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌───────────┐                                                  │
+│  │ data_prep │  Prepare data splits                             │
+│  └─────┬─────┘                                                  │
+│        │                                                         │
+│        ▼                                                         │
+│  ┌───────────┐                                                  │
+│  │   train   │  Train model (4hr timeout)                       │
+│  └─────┬─────┘                                                  │
+│        │                                                         │
+│        ▼                                                         │
+│  ┌───────────┐                                                  │
+│  │ evaluate  │  Evaluate on test set                            │
+│  └─────┬─────┘                                                  │
+│        │                                                         │
+│        ▼                                                         │
+│  ┌───────────┐                                                  │
+│  │  upload   │  Upload to S3                                    │
+│  └───────────┘                                                  │
+│                                                                  │
+│  Schedule: Manual trigger only                                   │
+│  Tags: ml, training, biometric                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Start Airflow
+
+```bash
+# Start all services (Postgres, MLflow, Airflow)
+docker-compose up -d
+
+# Access Airflow UI
+open http://localhost:8080
+# Login: admin / admin
+```
+
+### Airflow Variables
+
+| Variable                | Default                            | Description         |
+| ----------------------- | ---------------------------------- | ------------------- |
+| `biometric_config_path` | `/opt/airflow/configs/config.yaml` | Path to config file |
+| `biometric_output_dir`  | `/opt/airflow/outputs`             | Output directory    |
+
+### Trigger Training
+
+```bash
+# Via CLI
+docker-compose exec airflow-webserver airflow dags trigger biometric_training_pipeline
+
+# Or use the Airflow UI
+```
+
+## API Server
+
+FastAPI-based REST API for real-time inference.
+
+### Endpoints
+
+| Endpoint      | Method | Description                   |
+| ------------- | ------ | ----------------------------- |
+| `/health`     | GET    | Health check, model status    |
+| `/predict`    | POST   | Predict from uploaded files   |
+| `/model/info` | GET    | Model metadata                |
+| `/docs`       | GET    | Interactive API documentation |
+
+### Run API Server
+
+```bash
+# Using Poetry script (recommended)
+poetry run serve
+
+# Or run directly
+poetry run python -m biometric_recognition.api.serve
+
+# Using Docker
+docker-compose --profile prod up -d
+
+# Environment variables
+export MODEL_PATH="s3://bucket/models/model.pth"
+export NUM_CLASSES=45
+```
+
+### Example Request
+
+```python
+import requests
+
+files = {
+    "fingerprint": open("fingerprint.bmp", "rb"),
+    "left_iris": open("left_iris.bmp", "rb"),
+    "right_iris": open("right_iris.bmp", "rb"),
+}
+
+response = requests.post("http://localhost:8000/predict", files=files)
+result = response.json()
+
+print(f"Predicted class: {result['predicted_class']}")
+print(f"Confidence: {result['confidence']:.4f}")
+```
+
+### Response Format
+
+```json
+{
+  "predicted_class": 12,
+  "confidence": 0.9542,
+  "top_k_predictions": [
+    {"class": 12, "probability": 0.9542},
+    {"class": 7, "probability": 0.0231},
+    {"class": 3, "probability": 0.0089}
+  ]
+}
+```
+
+## Kubernetes Deployment
+
+Production deployment on Kubernetes with health checks and resource management.
+
+### Cluster Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    Service (NodePort)                        ││
+│  │                    Port: 30080 → 8000                        ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                              │                                   │
+│                              ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                      Deployment                              ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │                    Pod (replica)                         │││
+│  │  │  ┌───────────────────────────────────────────────────┐  │││
+│  │  │  │              biometric-recognition                 │  │││
+│  │  │  │  • Image: ECR repository                          │  │││
+│  │  │  │  • Port: 8000                                     │  │││
+│  │  │  │  • Resources: 512Mi-1Gi RAM, 100m-500m CPU        │  │││
+│  │  │  │  • Liveness: /health (180s initial, 30s period)   │  │││
+│  │  │  │  • Readiness: /health (120s initial, 10s period)  │  │││
+│  │  │  └───────────────────────────────────────────────────┘  │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+│  Secrets: aws-credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_...)   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Deploy to Kubernetes
+
+```bash
+# Create AWS credentials secret
+kubectl create secret generic aws-credentials \
+  --from-literal=AWS_ACCESS_KEY_ID=<your-key> \
+  --from-literal=AWS_SECRET_ACCESS_KEY=<your-secret>
+
+# Deploy
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+
+# Check status
+kubectl get pods -l app=biometric-recognition
+kubectl get svc biometric-recognition
+
+# View logs
+kubectl logs -l app=biometric-recognition -f
+```
+
+### Resource Configuration
+
+| Resource | Request | Limit |
+| -------- | ------- | ----- |
+| Memory   | 512Mi   | 1Gi   |
+| CPU      | 100m    | 500m  |
+
+### Health Probes
+
+| Probe     | Path      | Initial Delay | Period |
+| --------- | --------- | ------------- | ------ |
+| Liveness  | `/health` | 180s          | 30s    |
+| Readiness | `/health` | 120s          | 10s    |
+
+### Scale Deployment
+
+```bash
+# Scale replicas
+kubectl scale deployment biometric-recognition --replicas=3
+
+# Check rollout status
+kubectl rollout status deployment/biometric-recognition
+```
+
+## Docker Compose Services
+
+```yaml
+Services:
+  postgres:      # Airflow metadata database
+  mlflow:        # MLflow tracking server (port 5000)
+  airflow-init:  # Database initialization
+  airflow-webserver:  # Airflow UI (port 8080)
+  airflow-scheduler:  # DAG scheduler
+```
+
+### Quick Start
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f mlflow
+docker-compose logs -f airflow-webserver
+
+# Stop services
+docker-compose down
+```
+
+### Service URLs
+
+| Service             | URL                       | Credentials   |
+| ------------------- | ------------------------- | ------------- |
+| Airflow UI          | <http://localhost:8080>   | admin / admin |
+| MLflow UI           | <http://localhost:5000>   | -             |
+| API (when deployed) | <http://localhost:8000>   | -             |
+
+## Configuration
+
+### Main Config (`configs/config.yaml`)
+
+```yaml
+data:
+  path: "s3://bucket/biometric_data/"  # S3 or local path
+  num_people: 45
+  fingerprint_size: [128, 128]
+  iris_size: [64, 64]
+  batch_size: 8
+  num_workers: 8
+  preload_images: true
+
+model:
+  fingerprint_feature_dim: 1280
+  iris_feature_dim: 32
+  fusion_hidden_dim: 128
+  dropout: 0.5
+
+training:
+  epochs: 10
+  learning_rate: 0.0001
+  device: "auto"  # auto, cpu, cuda, mps
+
+s3:
+  model_bucket: "your-bucket"
+  model_prefix: "biometric_model/"
+```
+
+### Environment Variables
+
+| Variable                | Description                         | Default                      |
+| ----------------------- | ----------------------------------- | ---------------------------- |
+| `MODEL_PATH`            | Model checkpoint path (local or S3) | `checkpoints/best_model.pth` |
+| `NUM_CLASSES`           | Number of classes                   | 45                           |
+| `MLFLOW_TRACKING_URI`   | MLflow server URL                   | `http://localhost:5000`      |
+| `AWS_ACCESS_KEY_ID`     | AWS access key                      | -                            |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key                      | -                            |
 
 ## Dataset Format
 
-The expected dataset structure is:
-```
+```text
 dataset/
-├── 1/
+├── 1/                    # Person ID
 │   ├── Fingerprint/
 │   │   └── image.bmp
 │   ├── left/
@@ -98,389 +520,58 @@ dataset/
 │   └── right/
 │       └── iris_right.bmp
 ├── 2/
-│   ├── Fingerprint/
-│   ├── left/
-│   └── right/
-└── ...
+│   └── ...
+└── N/
 ```
-
-## Quick Start with S3
-
-For a complete train → store → serve workflow with S3:
-
-```bash
-# 1. Configure AWS credentials
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export S3_MODEL_BUCKET="your-biometric-models-bucket"
-
-# 2. Update dataset path in configs/config.yaml
-# data:
-#   path: "s3://your-bucket/datasets/"  # or local path
-
-# 3. Train model (automatically uploads to S3)
-python src/biometric_recognition/train.py
-
-# 4. Serve from S3 (uses the uploaded model)
-export MODEL_PATH="s3://your-bucket/models/best_model_YYYYMMDD_HHMMSS.pth"
-python src/biometric_recognition/serve.py
-```
-
-## Usage
-
-### Configuration
-
-Update the main configuration file `configs/config.yaml`:
-
-```yaml
-# Dataset settings
-data:
-  path: "/path/to/your/dataset"  # Update this path
-  num_people: 45                 # Number of people in your dataset
-  batch_size: 8
-
-# Model settings
-model:
-  fingerprint_feature_dim: 256
-  iris_feature_dim: 64
-  fusion_hidden_dim: 128
-  dropout: 0.5
-
-# Training settings
-training:
-  epochs: 50
-  learning_rate: 0.0001
-  device: "auto"  # auto, cpu, cuda, mps
-```
-
-### Training
-
-```bash
-# Basic training
-python src/biometric_recognition/train.py
-
-# Training with custom parameters
-python src/biometric_recognition/train.py data.batch_size=16 training.epochs=100
-
-# Training with specific device
-python src/biometric_recognition/train.py training.device=cuda
-
-# Training with automatic S3 model upload (set S3_MODEL_BUCKET environment variable)
-export S3_MODEL_BUCKET="your-biometric-models-bucket"
-python src/biometric_recognition/train.py
-```
-
-### Inference
-
-```bash
-# Run inference with best model
-python src/biometric_recognition/inference.py model_path=checkpoints/best_model.pth
-
-# Run inference and save predictions
-python src/biometric_recognition/inference.py \
-    model_path=checkpoints/best_model.pth \
-    save_predictions=true \
-    output_file=my_predictions.json
-```
-
-### API Server
-
-Start the FastAPI server for real-time inference:
-
-```bash
-# Using Poetry
-poetry run serve --model-path checkpoints/best_model.pth
-
-# Using Python directly
-python src/biometric_recognition/serve.py --model-path checkpoints/best_model.pth
-
-# Using Docker
-docker-compose --profile prod up -d
-```
-
-**API Endpoints:**
-- `GET /health` - Health check
-- `POST /predict` - Predict from base64 encoded images
-- `POST /predict/files` - Predict from uploaded files
-- `GET /model/info` - Get model information
-- `GET /docs` - Interactive API documentation
-
-**Example API Usage:**
-```python
-import requests
-import base64
-
-# Prepare images
-with open("fingerprint.bmp", "rb") as f:
-    fingerprint_b64 = base64.b64encode(f.read()).decode()
-
-with open("left_iris.bmp", "rb") as f:
-    left_iris_b64 = base64.b64encode(f.read()).decode()
-
-with open("right_iris.bmp", "rb") as f:
-    right_iris_b64 = base64.b64encode(f.read()).decode()
-
-# Make prediction
-response = requests.post("http://localhost:8000/predict", json={
-    "fingerprint_image": fingerprint_b64,
-    "left_iris_image": left_iris_b64,
-    "right_iris_image": right_iris_b64
-})
-
-result = response.json()
-print(f"Predicted class: {result['predicted_class']}")
-print(f"Confidence: {result['confidence']:.4f}")
-```
-
-## Configuration Options
-
-### Data Configuration
-- `data.path`: Path to the dataset directory
-- `data.num_people`: Number of people in the dataset (default: 45)
-- `data.fingerprint_size`: Size of fingerprint images [height, width] (default: [128, 128])
-- `data.iris_size`: Size of iris images [height, width] (default: [64, 64])
-- `data.batch_size`: Training batch size (default: 8)
-- `data.num_workers`: Number of workers for data loading (default: 4)
-
-### Model Configuration
-- `model.fingerprint_feature_dim`: Feature dimension for fingerprint branch (default: 256)
-- `model.iris_feature_dim`: Feature dimension for iris branches (default: 64)
-- `model.fusion_hidden_dim`: Hidden dimension for fusion layer (default: 128)
-- `model.dropout`: Dropout probability (default: 0.5)
-
-### Training Configuration
-- `training.epochs`: Number of training epochs (default: 50)
-- `training.learning_rate`: Learning rate for optimizer (default: 0.0001)
-- `training.device`: Training device: "auto", "cpu", "cuda", or "mps" (default: "auto")
-
-## Model Performance
-
-The model architecture achieves:
-- Multi-modal feature fusion
-- Shared weights for left/right iris processing
-- Transfer learning with pretrained fingerprint backbone
-- Dropout regularization for better generalization
-
-## Production Features
-
-### 🚀 **API Serving**
-- **FastAPI** REST API for real-time inference
-- Base64 and file upload support
-- Automatic OpenAPI documentation
-- Health checks and monitoring endpoints
-- CORS support for web applications
-
-### ☁️ **Cloud Integration**
-- **S3 Support** for data and model storage
-- Automatic data download and caching
-- Model versioning and registry
-- AWS credentials integration
-
-### 🐳 **Docker Support**
-- Multi-stage builds (development, production, training)
-- Docker Compose for easy deployment
-- Nginx reverse proxy configuration
-- Health checks and auto-restart
-- Non-root user security
-
-### 🔄 **CI/CD Pipeline**
-- **GitHub Actions** workflows
-- Automated testing and linting
-- Security scanning with Trivy
-- Multi-architecture Docker builds
-- Automated model training pipeline
-- Slack notifications
-
-### 📊 **Monitoring & Observability**
-- Structured logging with timestamps
-- Model performance tracking
-- API metrics and health monitoring
-- Training progress visualization
 
 ## Development
 
-### Code Style
-The project uses:
-- Black for code formatting
-- isort for import sorting
-- flake8 for linting
-- mypy for type checking
+### Code Quality
 
-Run code quality checks:
 ```bash
-# Format code
+# Format
 poetry run black src/
 poetry run isort src/
 
 # Lint
 poetry run flake8 src/
-poetry run mypy src/
-```
 
-### Testing
-```bash
+# Test
 poetry run pytest
 ```
 
-## Outputs
+### Run Individual Pipeline Stages
 
-### Training
-- Model checkpoints saved to `checkpoints/`
-- Training history plots saved to `outputs/`
-- Logs with training progress and metrics
+```bash
+# Data preparation
+python -m biometric_recognition.pipeline.data_prep \
+  --config configs/config.yaml \
+  --output-dir outputs/data_prep
 
-### Inference
-- Predictions saved as JSON with confidence scores
-- Top-k predictions for each sample
-- Accuracy metrics (if ground truth available)
+# Training
+python -m biometric_recognition.pipeline.train \
+  --config outputs/data_prep/config.yaml \
+  --splits outputs/data_prep/data_splits.json \
+  --checkpoint-dir outputs/checkpoints
+
+# Evaluation
+python -m biometric_recognition.pipeline.evaluate \
+  --config outputs/data_prep/config.yaml \
+  --splits outputs/data_prep/data_splits.json \
+  --model outputs/checkpoints/best_model.pth \
+  --history outputs/checkpoints/training_history.json \
+  --output-dir outputs/evaluation
+```
 
 ## Hardware Requirements
 
-- **Minimum**: CPU with 8GB RAM
-- **Recommended**: NVIDIA GPU with 6GB+ VRAM
-- **Apple Silicon**: MPS support included
-- **Production**: 2+ CPU cores, 4GB+ RAM for API serving
-
-## Production Deployment
-
-### S3 Model Management Workflow
-
-The system supports seamless S3 integration for model storage and serving:
-
-1. **Train and Auto-Upload**:
-   ```bash
-   # Set S3 bucket for automatic upload after training
-   export S3_MODEL_BUCKET="your-biometric-models-bucket"
-   export AWS_ACCESS_KEY_ID="your-access-key"
-   export AWS_SECRET_ACCESS_KEY="your-secret-key"
-
-   # Train model (will automatically upload to S3)
-   python src/biometric_recognition/train.py
-   ```
-
-2. **Serve from S3**:
-   ```bash
-   # Serve model directly from S3 URI
-   export MODEL_PATH="s3://your-bucket/models/best_model_20241215_143022.pth"
-   python src/biometric_recognition/serve.py
-   ```
-
-3. **Manual S3 Management**:
-   ```bash
-   # Run S3 management examples
-   python examples/s3_model_management.py
-   ```
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-# Model configuration
-MODEL_PATH=checkpoints/best_model.pth  # or S3 URI
-NUM_CLASSES=45
-
-# AWS configuration (required for S3 features)
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-
-# S3 model storage (optional - enables auto-upload)
-S3_MODEL_BUCKET=your-biometric-models-bucket
-
-# API configuration
-HOST=0.0.0.0
-PORT=8000
-```
-
-### Docker Deployment
-
-1. **Single container**:
-   ```bash
-   docker run -d \
-     --name biometric-api \
-     -p 8000:8000 \
-     -e MODEL_PATH=checkpoints/best_model.pth \
-     -v ./checkpoints:/home/app/checkpoints:ro \
-     biometric-recognition:latest
-   ```
-
-2. **With Docker Compose**:
-   ```bash
-   # Production deployment with Nginx
-   docker-compose --profile prod up -d
-
-   # Scale the API service
-   docker-compose --profile prod up -d --scale biometric-api=3
-   ```
-
-### Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: biometric-api
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: biometric-api
-  template:
-    metadata:
-      labels:
-        app: biometric-api
-    spec:
-      containers:
-      - name: api
-        image: biometric-recognition:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: MODEL_PATH
-          value: "s3://your-bucket/models/model.pth"
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "500m"
-          limits:
-            memory: "4Gi"
-            cpu: "2"
-```
-
-### GitHub Actions Secrets
-
-Configure these secrets in your GitHub repository:
-
-- `DOCKER_USERNAME` - Docker Hub username
-- `DOCKER_PASSWORD` - Docker Hub password
-- `AWS_ACCESS_KEY_ID` - AWS access key
-- `AWS_SECRET_ACCESS_KEY` - AWS secret key
-- `AWS_REGION` - AWS region
-- `MODEL_BUCKET` - S3 bucket for models
-- `SLACK_WEBHOOK` - Slack webhook URL (optional)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and quality checks
-5. Submit a pull request
+| Environment | CPU       | RAM       | GPU              |
+| ----------- | --------- | --------- | ---------------- |
+| Development | 4+ cores  | 8GB+      | Optional         |
+| Training    | 8+ cores  | 16GB+     | NVIDIA 6GB+ VRAM |
+| API Serving | 2+ cores  | 4GB+      | Optional         |
+| Kubernetes  | 100m-500m | 512Mi-1Gi | -                |
 
 ## License
 
 This project is licensed under the MIT License.
-
-## Citation
-
-If you use this code in your research, please cite:
-
-```bibtex
-@misc{multimodal-biometric-recognition,
-  title={Multimodal Biometric Recognition System},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/your-username/biometric-recognition}
-}
-```
