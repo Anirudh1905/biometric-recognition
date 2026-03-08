@@ -1,0 +1,103 @@
+x-airflow-common: &airflow-common
+  build:
+    context: ./airflow
+    dockerfile: Dockerfile
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
+    AWS_REGION: ${AWS_REGION:-us-east-1}
+    PYTHONPATH: /opt/airflow/src
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./src:/opt/airflow/src
+    - ./configs:/opt/airflow/configs
+    - airflow-logs:/opt/airflow/logs
+    - pipeline-outputs:/opt/airflow/outputs
+    - ~/.aws:/home/airflow/.aws:ro
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    user: "0:0"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        chown -R 50000:0 /opt/airflow/outputs
+        chmod -R 775 /opt/airflow/outputs
+        chown -R 50000:0 /opt/airflow/logs
+        chmod -R 775 /opt/airflow/logs
+        su airflow -c "airflow db init"
+        su airflow -c "airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com \
+          --password admin"
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+    depends_on:
+      <<: *airflow-common-depends-on
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: airflow scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db:
+  airflow-logs:
+  pipeline-outputs:
