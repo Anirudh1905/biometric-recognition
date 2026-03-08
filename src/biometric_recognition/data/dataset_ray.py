@@ -1,12 +1,13 @@
 """Ray-based dataset module for distributed biometric data loading."""
 
-import os
-from typing import Tuple, List, Optional
-import torch
-from torch.utils.data import Dataset
-from PIL import Image
 import logging
+import os
+from typing import List, Optional, Tuple
+
 import ray
+import torch
+from PIL import Image
+from torch.utils.data import Dataset
 
 from biometric_recognition.utils.image_utils import preprocess_image
 
@@ -94,7 +95,7 @@ def find_images_for_person_remote(data_path: str, person_id: int) -> Optional[di
 
 
 class RayBiometricDataset(Dataset):
-    """Ray-enabled dataset class for distributed multimodal biometric data processing."""
+    """Ray-enabled dataset for distributed multimodal biometric data processing."""
 
     def __init__(
         self,
@@ -124,9 +125,8 @@ class RayBiometricDataset(Dataset):
         # Initialize Ray if not already initialized
         if not ray.is_initialized():
             ray.init(num_cpus=ray_workers, logging_level=logging.ERROR)
-            logging.info(
-                f"Ray initialized with {ray.cluster_resources().get('CPU', 'auto')} CPUs"
-            )
+            cpus = ray.cluster_resources().get("CPU", "auto")
+            logging.info(f"Ray initialized with {cpus} CPUs")
 
         # Load samples using Ray for distributed file discovery
         self.samples = self._load_samples_distributed()
@@ -195,8 +195,9 @@ class RayBiometricDataset(Dataset):
                     }
                 )
 
+            batch_num = i // batch_size + 1
             logging.info(
-                f"Ray pre-loaded batch {i//batch_size + 1}/4 ({len(batch_results)} samples)"
+                f"Ray pre-loaded batch {batch_num}/4 ({len(batch_results)} samples)"
             )
 
     def _load_image(

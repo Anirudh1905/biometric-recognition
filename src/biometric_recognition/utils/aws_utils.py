@@ -1,12 +1,12 @@
 """Simplified AWS S3 utilities for biometric recognition system."""
 
-import os
 import logging
-from pathlib import Path
-from typing import Optional, Tuple, Dict
+import os
 import tempfile
+from pathlib import Path
+from typing import Dict, Optional, Tuple
+
 import boto3
-from botocore.exceptions import ClientError
 
 
 class S3Utils:

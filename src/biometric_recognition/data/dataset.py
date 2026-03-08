@@ -1,11 +1,12 @@
 """Dataset module for loading biometric data."""
 
-import os
-from typing import Tuple, List, Optional
-import torch
-from torch.utils.data import Dataset
-from PIL import Image
 import logging
+import os
+from typing import List, Optional, Tuple
+
+import torch
+from PIL import Image
+from torch.utils.data import Dataset
 
 from biometric_recognition.utils.aws_utils import get_data_path
 from biometric_recognition.utils.image_utils import preprocess_image
@@ -87,8 +88,15 @@ class BiometricDataset(Dataset):
                                 }
                             )
 
+                num_samples = (
+                    len(fingerprint_paths)
+                    * len(left_iris_paths)
+                    * len(right_iris_paths)
+                )
                 logging.info(
-                    f"Person {person_id}: {len(fingerprint_paths)} fingerprints × {len(left_iris_paths)} left iris × {len(right_iris_paths)} right iris = {len(fingerprint_paths) * len(left_iris_paths) * len(right_iris_paths)} samples"
+                    f"Person {person_id}: {len(fingerprint_paths)} fingerprints × "
+                    f"{len(left_iris_paths)} left iris × {len(right_iris_paths)} "
+                    f"right iris = {num_samples} samples"
                 )
             else:
                 logging.warning(f"Missing modality files for person {person_id}")

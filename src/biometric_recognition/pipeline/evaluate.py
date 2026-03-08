@@ -9,14 +9,14 @@ import torch.nn as nn
 from omegaconf import OmegaConf
 
 from biometric_recognition.utils import (
-    get_device,
-    load_splits,
     create_data_loaders,
     create_model,
-    validate,
-    plot_training_history,
-    plot_confusion_matrix,
     get_classification_report,
+    get_device,
+    load_splits,
+    plot_confusion_matrix,
+    plot_training_history,
+    validate,
 )
 
 
@@ -63,7 +63,7 @@ def evaluate_model(
     _, _, test_loader = create_data_loaders(
         cfg,
         splits["train_indices"],  # Not used but required
-        splits["val_indices"],    # Not used but required
+        splits["val_indices"],  # Not used but required
         splits["test_indices"],
         preload=cfg.data.preload_images,
     )
@@ -131,7 +131,9 @@ if __name__ == "__main__":
     parser.add_argument("--config", required=True, help="Path to config.yaml")
     parser.add_argument("--splits", required=True, help="Path to data_splits.json")
     parser.add_argument("--model", required=True, help="Path to model checkpoint")
-    parser.add_argument("--history", required=True, help="Path to training_history.json")
+    parser.add_argument(
+        "--history", required=True, help="Path to training_history.json"
+    )
     parser.add_argument("--output-dir", required=True, help="Output directory")
     args = parser.parse_args()
 

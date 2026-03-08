@@ -1,7 +1,7 @@
 """Models package for biometric recognition."""
 
+from .branches import FingerprintBranch, FusionModule, IrisBranch
 from .multimodal_model import MultimodalBiometricModel
-from .branches import FingerprintBranch, IrisBranch, FusionModule
 
 __all__ = [
     "MultimodalBiometricModel",

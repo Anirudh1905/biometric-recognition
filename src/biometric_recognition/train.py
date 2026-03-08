@@ -11,9 +11,9 @@ import hydra
 from omegaconf import DictConfig
 
 from biometric_recognition.pipeline import (
+    evaluate_model,
     prepare_data,
     train_model,
-    evaluate_model,
     upload_artifacts,
 )
 

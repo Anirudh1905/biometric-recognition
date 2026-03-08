@@ -6,17 +6,17 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
-from PIL import Image
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 import uvicorn
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from PIL import Image
 
 from biometric_recognition.api.schema import HealthResponse, PredictionResponse
 from biometric_recognition.models import MultimodalBiometricModel
 from biometric_recognition.utils import (
     get_device,
+    get_model_info,
     load_model_from_checkpoint,
     predict_batch,
-    get_model_info,
     prepare_batch_from_images,
 )
 
@@ -24,7 +24,10 @@ from biometric_recognition.utils import (
 model_instance = None
 model_path = None
 device = None
-os.environ["MODEL_PATH"] = "s3://world-model-v1/biometric_model/20260308_172116/model.pth"
+os.environ[
+    "MODEL_PATH"
+] = "s3://world-model-v1/biometric_model/20260308_172116/model.pth"
+
 
 def get_model() -> MultimodalBiometricModel:
     """Dependency to get the loaded model."""
@@ -41,7 +44,7 @@ async def lifespan(app: FastAPI):
     # Startup
     # Configure logging
     logging.basicConfig(level=logging.INFO)
-    
+
     # Model configuration from environment variables
     model_path = os.getenv("MODEL_PATH", "checkpoints/best_model.pth")
     num_classes = int(os.getenv("NUM_CLASSES", "45"))

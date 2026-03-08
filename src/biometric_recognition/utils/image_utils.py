@@ -2,8 +2,9 @@
 
 import base64
 from typing import Tuple
-import torch
+
 import numpy as np
+import torch
 from PIL import Image
 
 
