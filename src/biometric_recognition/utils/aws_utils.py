@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 import boto3
 
@@ -12,24 +12,24 @@ import boto3
 class S3Utils:
     """S3 utility class for uploading and downloading files (singleton pattern)."""
 
-    _instances: Dict[str, "S3Utils"] = {}
+    _instances: ClassVar[dict[str, "S3Utils"]] = {}
+    s3_client: Any
+    region: str
 
-    def __new__(cls, region: str = "us-east-1"):
+    def __new__(cls, region: str = "us-east-1") -> "S3Utils":
         if region not in cls._instances:
-            cls._instances[region] = super().__new__(cls)
-            cls._instances[region].s3_client = boto3.client("s3", region_name=region)
-            cls._instances[region].region = region
+            instance = super().__new__(cls)
+            instance.s3_client = boto3.client("s3", region_name=region)
+            instance.region = region
+            cls._instances[region] = instance
         return cls._instances[region]
 
-    def __init__(self, region: str = "us-east-1"):
-        # Initialization already handled in __new__
-        pass
-
-    def _parse_s3_uri(self, s3_uri: str) -> Tuple[str, str]:
+    def _parse_s3_uri(self, s3_uri: str) -> tuple[str, str]:
         """Parse S3 URI into bucket and key."""
         if not s3_uri.startswith("s3://"):
             raise ValueError(f"Invalid S3 URI: {s3_uri}")
-        return s3_uri[5:].split("/", 1)
+        parts = s3_uri[5:].split("/", 1)
+        return (parts[0], parts[1] if len(parts) > 1 else "")
 
     def upload_to_s3(self, local_path: str, s3_uri: str) -> str:
         """Upload file to S3."""

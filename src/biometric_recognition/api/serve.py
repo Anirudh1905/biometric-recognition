@@ -3,9 +3,11 @@
 import io
 import logging
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, Dict
+from typing import Any
 
+import torch
 import uvicorn
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from PIL import Image
@@ -22,14 +24,14 @@ from biometric_recognition.utils.model_utils import (
 )
 
 # Global model instance
-model_instance = None
-model_path = None
-device = None
+model_instance: MultimodalBiometricModel | None = None
+model_path: str | None = None
+device: torch.device | None = None
 
 # Default model path - can be overridden by MODEL_PATH env var
 # os.environ.setdefault(
 #     "MODEL_PATH",
-#     "s3://biometric-recognition-artifacts/biometric_model/20260309T041605/model.pth"
+#     "s3://biometric-recognition-artifacts/biometric_model/20260309T174624/model.pth"
 # )
 
 
@@ -41,7 +43,7 @@ def get_model() -> MultimodalBiometricModel:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifespan with startup and shutdown events."""
     global model_instance, model_path, device
 
@@ -85,7 +87,7 @@ app = FastAPI(
 
 
 @app.get("/health", response_model=HealthResponse)
-async def health_check():
+async def health_check() -> HealthResponse:
     """Health check endpoint."""
     return HealthResponse(
         status="healthy" if model_instance is not None else "model_not_loaded",
@@ -100,7 +102,7 @@ async def predict(
     left_iris: UploadFile = File(..., description="Left iris image file"),
     right_iris: UploadFile = File(..., description="Right iris image file"),
     model: MultimodalBiometricModel = Depends(get_model),
-):
+) -> PredictionResponse:
     """Predict person identity from uploaded image files."""
     try:
         # Read images
@@ -114,6 +116,8 @@ async def predict(
         )
 
         # Inference using shared utility
+        if device is None:
+            raise HTTPException(status_code=503, detail="Device not initialized")
         predictions = predict_batch(model, batch, device)
 
         # Extract results
@@ -140,8 +144,8 @@ async def predict(
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
-@app.get("/model/info", response_model=Dict[str, Any])
-async def model_info():
+@app.get("/model/info", response_model=dict[str, Any])
+async def model_info() -> dict[str, Any]:
     """Get information about the loaded model."""
     if model_instance is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
@@ -153,7 +157,7 @@ async def model_info():
     return info
 
 
-def main():
+def main() -> None:
     """Run the FastAPI server."""
     uvicorn.run(
         "biometric_recognition.api.serve:app",

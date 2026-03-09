@@ -69,6 +69,7 @@ with DAG(
     # Artifact paths (outputs from each stage)
     config_path = f"{data_prep_dir}/config.yaml"
     splits_path = f"{data_prep_dir}/data_splits.json"
+    metadata_path = f"{data_prep_dir}/metadata.json"
     best_model_path = f"{checkpoint_dir}/best_model.pth"
     history_path = f"{checkpoint_dir}/training_history.json"
     eval_results_path = f"{eval_dir}/evaluation_results.json"
@@ -94,6 +95,7 @@ with DAG(
                 --config {config_path} \\
                 --splits {splits_path} \\
                 --checkpoint-dir {checkpoint_dir} \\
+                --metadata {metadata_path} \\
                 --run-id {run_id}
         """,
         env=TASK_ENV,
@@ -111,6 +113,7 @@ with DAG(
                 --model {best_model_path} \\
                 --history {history_path} \\
                 --output-dir {eval_dir} \\
+                --metadata {metadata_path} \\
                 --run-id {run_id}
         """,
         env=TASK_ENV,

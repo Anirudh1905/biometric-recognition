@@ -49,7 +49,8 @@ class FingerprintBranch(nn.Module):
             Feature vector [batch_size, 1280] - MobileNetV2 output
         """
         # Return MobileNetV2 features directly
-        return self.backbone(x)
+        result: torch.Tensor = self.backbone(x)
+        return result
 
 
 class IrisBranch(nn.Module):
@@ -88,7 +89,8 @@ class IrisBranch(nn.Module):
         """
         features = self.conv_layers(x)
         # After global avg pooling: [batch_size, 32, 1, 1] -> [batch_size, 32]
-        return features.view(features.size(0), -1)
+        result: torch.Tensor = features.view(features.size(0), -1)
+        return result
 
 
 class FusionModule(nn.Module):
@@ -139,4 +141,5 @@ class FusionModule(nn.Module):
             [fingerprint_features, left_iris_features, right_iris_features], dim=1
         )
 
-        return self.fusion_layer(fused)
+        result: torch.Tensor = self.fusion_layer(fused)
+        return result

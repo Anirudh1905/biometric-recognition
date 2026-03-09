@@ -35,7 +35,7 @@ def main(cfg: DictConfig) -> None:
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     with mlflow_run(
-        experiment_name="biometric-recognition",
+        experiment_name=cfg.mlflow.experiment_name,
         run_name=f"train-{cfg.data.num_people}p-{cfg.training.epochs}e",
         cfg=cfg,
     ):
@@ -45,7 +45,7 @@ def main(cfg: DictConfig) -> None:
         logging.info("=" * 50)
         data_prep_result = prepare_data(cfg, str(output_dir / "data_prep"))
 
-        # Step 2: Training
+        # Step 2: Training (use cached data from data_prep)
         logging.info("=" * 50)
         logging.info("Step 2: Training")
         logging.info("=" * 50)
@@ -53,9 +53,10 @@ def main(cfg: DictConfig) -> None:
             config_path=data_prep_result["config_path"],
             splits_path=data_prep_result["splits_path"],
             checkpoint_dir=str(checkpoint_dir),
+            cached_data_path=data_prep_result["cached_data_path"],
         )
 
-        # Step 3: Evaluation
+        # Step 3: Evaluation (use cached data from data_prep)
         logging.info("=" * 50)
         logging.info("Step 3: Evaluation")
         logging.info("=" * 50)
@@ -65,6 +66,7 @@ def main(cfg: DictConfig) -> None:
             model_path=train_result["best_model_path"],
             history_path=train_result["history_path"],
             output_dir=str(output_dir / "evaluation"),
+            cached_data_path=data_prep_result["cached_data_path"],
         )
 
         # Log final metrics and artifacts to MLflow

@@ -23,7 +23,7 @@ def create_model(cfg: DictConfig, device: torch.device) -> MultimodalBiometricMo
     """
     model = MultimodalBiometricModel(
         num_classes=cfg.data.num_people,
-        fingerprint_backbone="mobilenetv2_100",
+        fingerprint_backbone=cfg.model.backbone_name,
         fingerprint_feature_dim=cfg.model.fingerprint_feature_dim,
         iris_feature_dim=cfg.model.iris_feature_dim,
         fusion_hidden_dim=cfg.model.fusion_hidden_dim,
@@ -40,8 +40,6 @@ def create_model(cfg: DictConfig, device: torch.device) -> MultimodalBiometricMo
 
 def move_batch_to_device(batch: Dict[str, Any], device: torch.device) -> Dict[str, Any]:
     """Move batch tensors to the specified device.
-
-    Eliminates duplicate code from train.py (2 locations) and model_utils.py.
 
     Args:
         batch: Dictionary containing tensors and non-tensor values
@@ -62,17 +60,19 @@ def move_batch_to_device(batch: Dict[str, Any], device: torch.device) -> Dict[st
 def load_model_from_checkpoint(
     checkpoint_path: str,
     num_classes: int,
+    backbone_name: str = "mobilenetv2_100",
     fingerprint_feature_dim: int = 1280,
     iris_feature_dim: int = 32,
     fusion_hidden_dim: int = 128,
     dropout: float = 0.5,
-    device: torch.device = None,
+    device: torch.device | None = None,
 ) -> MultimodalBiometricModel:
     """Load trained model from checkpoint.
 
     Args:
         checkpoint_path: Path to checkpoint file (local or S3 URI)
         num_classes: Number of classes in the model
+        backbone_name: Name of the timm model to use as backbone
         fingerprint_feature_dim: Feature dimension for fingerprint branch
         iris_feature_dim: Feature dimension for iris branches
         fusion_hidden_dim: Hidden dimension for fusion layer
@@ -104,7 +104,9 @@ def load_model_from_checkpoint(
     if saved_config and hasattr(saved_config, "model"):
         model = MultimodalBiometricModel(
             num_classes=num_classes,
-            fingerprint_backbone="mobilenetv2_100",
+            fingerprint_backbone=getattr(
+                saved_config.model, "backbone_name", backbone_name
+            ),
             fingerprint_feature_dim=saved_config.model.fingerprint_feature_dim,
             iris_feature_dim=saved_config.model.iris_feature_dim,
             fusion_hidden_dim=saved_config.model.fusion_hidden_dim,
@@ -115,7 +117,7 @@ def load_model_from_checkpoint(
         # Fallback to provided parameters
         model = MultimodalBiometricModel(
             num_classes=num_classes,
-            fingerprint_backbone="mobilenetv2_100",
+            fingerprint_backbone=backbone_name,
             fingerprint_feature_dim=fingerprint_feature_dim,
             iris_feature_dim=iris_feature_dim,
             fusion_hidden_dim=fusion_hidden_dim,
@@ -175,7 +177,7 @@ def predict_batch(
 
 
 def get_model_info(
-    model: MultimodalBiometricModel, model_path: str = None
+    model: MultimodalBiometricModel, model_path: str | None = None
 ) -> Dict[str, Any]:
     """Get information about the loaded model.
 
@@ -207,13 +209,13 @@ def get_model_info(
 def save_checkpoint(
     path: Path,
     epoch: int,
-    model: MultimodalBiometricModel,
+    model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     val_accuracy: float,
-    cfg=None,
-    train_losses: list[float] = None,
-    val_losses: list[float] = None,
-    val_accuracies: list[float] = None,
+    cfg: Any = None,
+    train_losses: list[float] | None = None,
+    val_losses: list[float] | None = None,
+    val_accuracies: list[float] | None = None,
 ) -> None:
     """Save model checkpoint.
 
