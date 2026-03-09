@@ -21,10 +21,6 @@ class S3Utils:
             cls._instances[region].region = region
         return cls._instances[region]
 
-    def __init__(self, region: str = "us-east-1"):
-        # Initialization already handled in __new__
-        pass
-
     def _parse_s3_uri(self, s3_uri: str) -> Tuple[str, str]:
         """Parse S3 URI into bucket and key."""
         if not s3_uri.startswith("s3://"):

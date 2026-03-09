@@ -4,31 +4,59 @@ import json
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 from omegaconf import DictConfig
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 
 from biometric_recognition.data import BiometricDataset
 
 
-def create_dataset(cfg: DictConfig, preload: bool = True) -> BiometricDataset:
+def create_dataset(
+    cfg: DictConfig, preload: bool = True, data_path_override: Optional[str] = None
+) -> BiometricDataset:
     """Create a BiometricDataset from config.
 
     Args:
         cfg: Hydra configuration
         preload: Whether to preload images into memory
+        data_path_override: Optional local path to use instead of cfg.data.path
+            (useful when data has been pre-cached by data_prep stage)
 
     Returns:
         Configured BiometricDataset instance
     """
+    # Use override path if provided (from data_prep cache), otherwise use config
+    data_path = data_path_override or cfg.data.path
+
     return BiometricDataset(
-        data_path=cfg.data.path,
+        data_path=data_path,
         num_people=cfg.data.num_people,
         fingerprint_size=tuple(cfg.data.fingerprint_size),
         iris_size=tuple(cfg.data.iris_size),
         preload=preload,
-        config=cfg,
+        config=cfg if data_path_override is None else None,  # Skip S3 logic if override
     )
+
+
+def _assign_to_splits(
+    images: list[str], test_size: float, val_ratio: float, rng: np.random.Generator
+) -> dict[str, str]:
+    """Assign images to train/val/test splits proportionally."""
+    n = len(images)
+    if n == 1:
+        return {images[0]: "train"}
+    if n == 2:
+        return {images[0]: "train", images[1]: "val"}
+
+    # Calculate split sizes
+    n_val = max(1, int(n * test_size * (1 - val_ratio)))
+    n_test = max(1, int(n * test_size * val_ratio))
+    n_train = max(1, n - n_val - n_test)
+
+    # Shuffle and assign
+    shuffled = rng.permutation(images).tolist()
+    splits = ["train"] * n_train + ["val"] * n_val + ["test"] * n_test
+    return dict(zip(shuffled, splits))
 
 
 def create_stratified_splits(
@@ -37,7 +65,10 @@ def create_stratified_splits(
     val_ratio: float = 0.5,
     random_state: int = 42,
 ) -> tuple[list[int], list[int], list[int]]:
-    """Create stratified train/val/test splits.
+    """Create stratified train/val/test splits ensuring no image leakage.
+
+    For each person, all unique images are assigned to splits. A sample is only
+    included if all its images (fingerprint, left/right iris) are in the same split.
 
     Args:
         dataset: The dataset to split
@@ -48,24 +79,39 @@ def create_stratified_splits(
     Returns:
         Tuple of (train_indices, val_indices, test_indices)
     """
-    person_ids = [sample["person_id"] for sample in dataset.samples]
 
-    # First split: train vs (val+test)
-    train_indices, temp_indices = train_test_split(
-        range(len(dataset)),
-        test_size=test_size,
-        stratify=person_ids,
-        random_state=random_state,
-    )
+    rng = np.random.default_rng(random_state)
 
-    # Second split: val vs test
-    temp_person_ids = [person_ids[i] for i in temp_indices]
-    val_indices, test_indices = train_test_split(
-        temp_indices,
-        test_size=val_ratio,
-        stratify=temp_person_ids,
-        random_state=random_state,
-    )
+    # Collect unique images per person per modality
+    person_images: dict[int, dict[str, set[str]]] = {}
+    for sample in dataset.samples:
+        pid = sample["person_id"]
+        if pid not in person_images:
+            person_images[pid] = {"fp": set(), "left": set(), "right": set()}
+        person_images[pid]["fp"].add(sample["fingerprint_path"])
+        person_images[pid]["left"].add(sample["left_iris_path"])
+        person_images[pid]["right"].add(sample["right_iris_path"])
+
+    # Assign each image to a split
+    image_to_split: dict[str, str] = {}
+    for modalities in person_images.values():
+        for images in modalities.values():
+            assignments = _assign_to_splits(sorted(images), test_size, val_ratio, rng)
+            image_to_split.update(assignments)
+
+    # Only include samples where all images are in the same split
+    train_indices, val_indices, test_indices = [], [], []
+    for idx, sample in enumerate(dataset.samples):
+        splits = {
+            image_to_split[sample["fingerprint_path"]],
+            image_to_split[sample["left_iris_path"]],
+            image_to_split[sample["right_iris_path"]],
+        }
+        if len(splits) == 1:  # All same split
+            split = splits.pop()
+            {"train": train_indices, "val": val_indices, "test": test_indices}[
+                split
+            ].append(idx)
 
     return train_indices, val_indices, test_indices
 
@@ -105,6 +151,7 @@ def create_data_loaders(
     val_indices: list[int],
     test_indices: Optional[list[int]] = None,
     preload: bool = True,
+    data_path_override: Optional[str] = None,
 ) -> tuple[DataLoader, DataLoader, Optional[DataLoader]]:
     """Create data loaders from pre-computed indices.
 
@@ -114,11 +161,15 @@ def create_data_loaders(
         val_indices: Validation set indices
         test_indices: Optional test set indices
         preload: Whether to preload images
+        data_path_override: Optional local path to use instead of cfg.data.path
+            (useful when data has been pre-cached by data_prep stage)
 
     Returns:
         Tuple of (train_loader, val_loader, test_loader or None)
     """
-    dataset = create_dataset(cfg, preload=preload)
+    dataset = create_dataset(
+        cfg, preload=preload, data_path_override=data_path_override
+    )
 
     train_loader = create_data_loader(
         dataset,

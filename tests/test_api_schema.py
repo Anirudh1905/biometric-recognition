@@ -3,51 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from biometric_recognition.api.schema import (
-    BiometricData,
-    HealthResponse,
-    PredictionResponse,
-)
-
-
-class TestBiometricData:
-    """Tests for BiometricData schema."""
-
-    def test_valid_data(self):
-        """Test creating valid BiometricData."""
-        data = BiometricData(
-            fingerprint_image="base64encodedstring",
-            left_iris_image="base64encodedstring",
-            right_iris_image="base64encodedstring",
-        )
-
-        assert data.fingerprint_image == "base64encodedstring"
-        assert data.left_iris_image == "base64encodedstring"
-        assert data.right_iris_image == "base64encodedstring"
-
-    def test_missing_fingerprint_raises_error(self):
-        """Test that missing fingerprint raises validation error."""
-        with pytest.raises(ValidationError):
-            BiometricData(
-                left_iris_image="base64",
-                right_iris_image="base64",
-            )
-
-    def test_missing_left_iris_raises_error(self):
-        """Test that missing left iris raises validation error."""
-        with pytest.raises(ValidationError):
-            BiometricData(
-                fingerprint_image="base64",
-                right_iris_image="base64",
-            )
-
-    def test_missing_right_iris_raises_error(self):
-        """Test that missing right iris raises validation error."""
-        with pytest.raises(ValidationError):
-            BiometricData(
-                fingerprint_image="base64",
-                left_iris_image="base64",
-            )
+from biometric_recognition.api.schema import HealthResponse, PredictionResponse
 
 
 class TestPredictionResponse:

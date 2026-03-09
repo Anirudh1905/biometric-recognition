@@ -31,6 +31,7 @@ def evaluate_model(
     model_path: str,
     history_path: str,
     output_dir: str,
+    cached_data_path: str | None = None,
 ) -> dict:
     """
     Evaluate the trained model on the test set.
@@ -41,6 +42,7 @@ def evaluate_model(
         model_path: Path to trained model checkpoint
         history_path: Path to training_history.json
         output_dir: Directory to save evaluation results
+        cached_data_path: Optional path to pre-cached data from data_prep stage
 
     Returns:
         dict with evaluation metrics and paths to artifacts
@@ -49,6 +51,12 @@ def evaluate_model(
 
     cfg = OmegaConf.load(config_path)
     splits = load_splits(splits_path)
+
+    # Log data source
+    if cached_data_path:
+        logging.info(f"Using pre-cached data from: {cached_data_path}")
+    else:
+        logging.info(f"Data will be loaded from: {cfg.data.path}")
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -64,13 +72,14 @@ def evaluate_model(
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    # Create test loader
+    # Create test loader (use cached path if provided)
     _, _, test_loader = create_data_loaders(
         cfg,
         splits["train_indices"],  # Not used but required
         splits["val_indices"],  # Not used but required
         splits["test_indices"],
         preload=cfg.data.preload_images,
+        data_path_override=cached_data_path,
     )
 
     # Evaluate on test set using validate with collect_predictions=True
@@ -140,20 +149,34 @@ if __name__ == "__main__":
         "--history", required=True, help="Path to training_history.json"
     )
     parser.add_argument("--output-dir", required=True, help="Output directory")
+    parser.add_argument(
+        "--metadata", default=None, help="Path to metadata.json from data_prep"
+    )
     parser.add_argument("--run-id", default=None, help="Run ID for experiment tracking")
     args = parser.parse_args()
 
     setup_logging()
     cfg = OmegaConf.load(args.config)
 
+    # Read cached data path from metadata if provided
+    data_path = None
+    if args.metadata:
+        with open(args.metadata) as f:
+            data_path = json.load(f).get("cached_data_path")
+
     with mlflow_run(
-        experiment_name="biometric-recognition",
+        experiment_name=cfg.mlflow.experiment_name,
         run_name=f"evaluate-{args.run_id}" if args.run_id else None,
         cfg=cfg,
         tags={"stage": "evaluation", "run_id": args.run_id} if args.run_id else None,
     ):
         result = evaluate_model(
-            args.config, args.splits, args.model, args.history, args.output_dir
+            args.config,
+            args.splits,
+            args.model,
+            args.history,
+            args.output_dir,
+            data_path,
         )
         log_metrics(
             {

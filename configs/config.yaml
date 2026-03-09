@@ -28,16 +28,21 @@ api:
 
 # Model settings
 model:
-  fingerprint_feature_dim: 1280  # MobileNetV2 output features
+  backbone_name: "mobilenetv2_100"  # timm model name for fingerprint branch
+  fingerprint_feature_dim: 1280    # MobileNetV2 output features
   iris_feature_dim: 32           # GlobalAveragePooling from 32 conv filters
   fusion_hidden_dim: 128         # Dense layer
   dropout: 0.5
 
 # Training settings
 training:
-  epochs: 10
+  epochs: 50
   learning_rate: 0.0001
   device: "auto"  # auto, cpu, cuda, mps
+
+# MLflow settings
+mlflow:
+  experiment_name: "biometric-recognition"
 
 # Output paths
 output_dir: "./outputs"

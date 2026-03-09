@@ -26,6 +26,7 @@ def train_model(
     splits_path: str,
     checkpoint_dir: str,
     resume_from: str | None = None,
+    cached_data_path: str | None = None,
 ) -> dict:
     """
     Train the model using pre-computed data splits.
@@ -35,6 +36,7 @@ def train_model(
         splits_path: Path to data_splits.json from data_prep task
         checkpoint_dir: Directory to save model checkpoints
         resume_from: Optional path to checkpoint to resume training from
+        cached_data_path: Optional path to pre-cached data from data_prep stage
 
     Returns:
         dict with training results and paths to saved models
@@ -44,6 +46,12 @@ def train_model(
     cfg = OmegaConf.load(config_path)
     splits = load_splits(splits_path)
 
+    # Log data source
+    if cached_data_path:
+        logging.info(f"Using pre-cached data from: {cached_data_path}")
+    else:
+        logging.info(f"Data will be loaded from: {cfg.data.path}")
+
     checkpoint_path = Path(checkpoint_dir)
     checkpoint_path.mkdir(parents=True, exist_ok=True)
 
@@ -52,12 +60,13 @@ def train_model(
 
     torch.manual_seed(cfg.seed)
 
-    # Create data loaders
+    # Create data loaders (use cached path if provided)
     train_loader, val_loader, _ = create_data_loaders(
         cfg,
         splits["train_indices"],
         splits["val_indices"],
         preload=cfg.data.preload_images,
+        data_path_override=cached_data_path,
     )
 
     # Create model
@@ -123,19 +132,30 @@ if __name__ == "__main__":
     parser.add_argument("--splits", required=True, help="Path to data_splits.json")
     parser.add_argument("--checkpoint-dir", required=True, help="Checkpoint directory")
     parser.add_argument("--resume", default=None, help="Resume from checkpoint")
+    parser.add_argument(
+        "--metadata", default=None, help="Path to metadata.json from data_prep"
+    )
     parser.add_argument("--run-id", default=None, help="Run ID for experiment tracking")
     args = parser.parse_args()
 
     setup_logging()
     cfg = OmegaConf.load(args.config)
 
+    # Read cached data path from metadata if provided
+    data_path = None
+    if args.metadata:
+        with open(args.metadata) as f:
+            data_path = json.load(f).get("cached_data_path")
+
     with mlflow_run(
-        experiment_name="biometric-recognition",
+        experiment_name=cfg.mlflow.experiment_name,
         run_name=f"train-{args.run_id}" if args.run_id else None,
         cfg=cfg,
         tags={"stage": "training", "run_id": args.run_id} if args.run_id else None,
     ):
-        result = train_model(args.config, args.splits, args.checkpoint_dir, args.resume)
+        result = train_model(
+            args.config, args.splits, args.checkpoint_dir, args.resume, data_path
+        )
         log_metrics(
             {
                 "best_val_accuracy": result["best_val_accuracy"],
