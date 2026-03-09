@@ -31,7 +31,7 @@ device: torch.device | None = None
 # Default model path - can be overridden by MODEL_PATH env var
 # os.environ.setdefault(
 #     "MODEL_PATH",
-#     "s3://biometric-recognition-artifacts/biometric_model/20260309T041605/model.pth"
+#     "s3://biometric-recognition-artifacts/biometric_model/20260309T174624/model.pth"
 # )
 
 

@@ -32,7 +32,8 @@ def create_dataset(
     config_dict: dict[str, Any] | None = None
     if data_path_override is None:
         from omegaconf import OmegaConf
-        config_dict = OmegaConf.to_container(cfg, resolve=True)  # type: ignore[assignment]
+
+        config_dict = OmegaConf.to_container(cfg, resolve=True)  # type: ignore
 
     return BiometricDataset(
         data_path=data_path,
