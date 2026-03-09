@@ -29,7 +29,7 @@ device = None
 # Default model path - can be overridden by MODEL_PATH env var
 # os.environ.setdefault(
 #     "MODEL_PATH",
-#     "s3://biometric-recognition-artifacts/biometric_model/20260308_172116/model.pth"
+#     "s3://biometric-recognition-artifacts/biometric_model/20260309T041605/model.pth"
 # )
 
 

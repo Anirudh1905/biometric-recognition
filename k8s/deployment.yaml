@@ -23,7 +23,7 @@ spec:
             - containerPort: 8000
           env:
             - name: MODEL_PATH
-              value: "s3://biometric-recognition-artifacts/biometric_model/final_model_20260307_200122.pth"
+              value: "s3://biometric-recognition-artifacts/biometric_model/20260309T041605/model.pth"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
