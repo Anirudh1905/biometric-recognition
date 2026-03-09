@@ -4,7 +4,7 @@ defaults:
 
 # Dataset settings
 data:
-  path: "s3://world-model-v1/biometric_data/"  # Local path (e.g., "data/") OR S3 URI (e.g., "s3://my-bucket/datasets/")
+  path: "s3://biometric-recognition-artifacts/biometric_data/"  # Local path (e.g., "data/") OR S3 URI (e.g., "s3://my-bucket/datasets/")
   num_people: 45
   fingerprint_size: [128, 128]  # [height, width]
   iris_size: [64, 64]           # [height, width]
@@ -19,7 +19,7 @@ aws:
 
 # S3 Model Storage
 s3:
-  model_bucket: "world-model-v1"  # S3 bucket for model storage
+  model_bucket: "biometric-recognition-artifacts"  # S3 bucket for model storage
   model_prefix: "biometric_model/"  # S3 prefix/path for models
 
 # API Configuration (for inference.py)

@@ -12,3 +12,7 @@ examples/
 outputs/
 checkpoints/
 .env
+.terraform*
+terraform.tfstate
+terraform.lock.hcl
+terraform.tfstate.backup*

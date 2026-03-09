@@ -9,6 +9,7 @@ A PyTorch-based multimodal biometric recognition system that uses fingerprints a
 - **MLflow Integration**: Experiment tracking, model versioning, and artifact management
 - **Airflow Orchestration**: Automated training pipelines with task dependencies
 - **Kubernetes Ready**: Production deployment with health checks and auto-scaling
+- **Terraform Infrastructure**: Infrastructure as Code for AWS resources (ECR, S3)
 - **Hydra Configuration**: Flexible configuration management
 - **S3 Integration**: Cloud storage for datasets and models
 
@@ -96,6 +97,12 @@ biometric-recognition/
 │   └── service.yaml           # Kubernetes service
 ├── configs/
 │   └── config.yaml            # Hydra configuration
+├── terraform/                  # Infrastructure as Code
+│   ├── providers.tf           # AWS provider configuration
+│   ├── variables.tf           # Input variables
+│   ├── ecr.tf                 # ECR repository
+│   ├── s3.tf                  # S3 bucket for artifacts
+│   └── outputs.tf             # Output values
 ├── Dockerfile                  # API Docker image
 └── docker-compose.yml         # Docker services (Airflow, MLflow, Postgres)
 ```
@@ -107,6 +114,7 @@ biometric-recognition/
 - Python 3.12+
 - Docker & Docker Compose
 - AWS CLI (for S3 features)
+- Terraform >= 1.0 (for infrastructure provisioning)
 - kubectl (for Kubernetes deployment)
 
 ### Local Development
@@ -316,7 +324,7 @@ poetry run python -m biometric_recognition.api.serve
 docker-compose --profile prod up -d
 
 # Environment variables
-export MODEL_PATH="s3://bucket/models/model.pth"
+export MODEL_PATH="s3://biometric-recognition-artifacts/biometric_model/model.pth"
 export NUM_CLASSES=45
 ```
 
@@ -432,6 +440,69 @@ kubectl scale deployment biometric-recognition --replicas=3
 kubectl rollout status deployment/biometric-recognition
 ```
 
+## Infrastructure (Terraform)
+
+Terraform is used to provision AWS infrastructure including ECR for container images and S3 for model artifacts.
+
+### Resources Created
+
+| Resource | Name | Description |
+| -------- | ---- | ----------- |
+| **ECR Repository** | `biometric-recognition` | Container image registry with scanning enabled |
+| **S3 Bucket** | `biometric-recognition-artifacts` | Model and data storage with versioning and encryption |
+
+### Infrastructure Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    AWS Infrastructure                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    ECR Repository                            ││
+│  │  • Name: biometric-recognition                               ││
+│  │  • Image scanning on push                                    ││
+│  │  • Lifecycle policy: Keep last 10 images                     ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    S3 Bucket                                 ││
+│  │  • Name: biometric-recognition-artifacts                     ││
+│  │  • Versioning: Enabled                                       ││
+│  │  • Encryption: AES256 (SSE-S3)                               ││
+│  │  • Public access: Blocked                                    ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Deploy Infrastructure
+
+```bash
+cd terraform
+
+# Initialize Terraform
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply infrastructure
+terraform apply
+
+# Get outputs
+terraform output
+```
+
+### Terraform Outputs
+
+| Output | Description |
+| ------ | ----------- |
+| `ecr_repository_url` | ECR repository URL for Docker push |
+| `ecr_repository_arn` | ECR repository ARN |
+| `s3_bucket_name` | S3 bucket name (`biometric-recognition-artifacts`) |
+| `s3_bucket_arn` | S3 bucket ARN |
+
 ## Docker Compose Services
 
 ```yaml
@@ -474,7 +545,7 @@ docker-compose down
 
 ```yaml
 data:
-  path: "s3://bucket/biometric_data/"  # S3 or local path
+  path: "s3://biometric-recognition-artifacts/biometric_data/"  # S3 or local path
   num_people: 45
   fingerprint_size: [128, 128]
   iris_size: [64, 64]
@@ -494,7 +565,7 @@ training:
   device: "auto"  # auto, cpu, cuda, mps
 
 s3:
-  model_bucket: "your-bucket"
+  model_bucket: "biometric-recognition-artifacts"
   model_prefix: "biometric_model/"
 ```
 
