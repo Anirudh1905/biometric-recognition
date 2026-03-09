@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 
 from biometric_recognition.utils.aws_utils import S3Utils
 from biometric_recognition.utils.logging_utils import setup_logging
+from biometric_recognition.utils.mlflow_utils import log_artifact, mlflow_run
 
 
 def upload_artifacts(
@@ -92,6 +93,9 @@ def upload_artifacts(
         s3_utils.upload_to_s3(str(manifest_path), manifest_s3_uri)
         uploaded["manifest"] = manifest_s3_uri
 
+        # Log manifest to MLflow (contains all S3 URIs)
+        log_artifact(str(manifest_path))
+
         logging.info("=" * 50)
         logging.info("ARTIFACTS UPLOADED TO S3!")
         logging.info(f"Run ID: {run_id}")
@@ -124,7 +128,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     setup_logging()
-    result = upload_artifacts(
-        args.config, args.model, args.results, args.plots_dir, args.run_id
-    )
+    cfg = OmegaConf.load(args.config)
+
+    with mlflow_run(
+        experiment_name=cfg.mlflow.experiment_name,
+        run_name=f"upload-{args.run_id}" if args.run_id else None,
+        tags={"stage": "upload", "run_id": args.run_id} if args.run_id else None,
+    ):
+        result = upload_artifacts(
+            args.config, args.model, args.results, args.plots_dir, args.run_id
+        )
+
     print(json.dumps(result, indent=2))
