@@ -24,12 +24,12 @@ docker-compose up -d
 
 ## Model Architecture
 
-| Component          | Architecture                        | Output Dim |
-|--------------------|-------------------------------------|------------|
-| Fingerprint Branch | MobileNetV2 (pretrained, frozen)    | 1280       |
-| Iris Branch        | 2x Conv2D + MaxPool + GlobalAvgPool | 32 (shared)|
-| Fusion Module      | Linear(1344→128) + ReLU + Dropout   | 128        |
-| Classifier         | Linear(128→num_classes)             | num_classes|
+| Component          | Architecture                        | Output Dim  |
+| ------------------ | ----------------------------------- | ----------- |
+| Fingerprint Branch | MobileNetV2 (pretrained, frozen)    | 1280        |
+| Iris Branch        | 2x Conv2D + MaxPool + GlobalAvgPool | 32 (shared) |
+| Fusion Module      | Linear(1344→128) + ReLU + Dropout  | 128         |
+| Classifier         | Linear(128→num_classes)            | num_classes |
 
 ## Project Structure
 
@@ -63,12 +63,12 @@ docker-compose exec airflow-webserver airflow dags trigger biometric_training_pi
 
 ### Pipeline Stages
 
-| Stage     | Description                         | Outputs                          |
-|-----------|-------------------------------------|----------------------------------|
-| data_prep | Create stratified splits            | `data_splits.json`               |
-| train     | Train with validation               | `best_model.pth`                 |
-| evaluate  | Test set evaluation                 | `evaluation_results.json`, plots |
-| upload    | Upload artifacts to S3              | S3 URIs                          |
+| Stage     | Description              | Outputs                            |
+| --------- | ------------------------ | ---------------------------------- |
+| data_prep | Create stratified splits | `data_splits.json`               |
+| train     | Train with validation    | `best_model.pth`                 |
+| evaluate  | Test set evaluation      | `evaluation_results.json`, plots |
+| upload    | Upload artifacts to S3   | S3 URIs                            |
 
 ## API Server
 
@@ -76,12 +76,12 @@ docker-compose exec airflow-webserver airflow dags trigger biometric_training_pi
 poetry run serve
 ```
 
-| Endpoint      | Method | Description              |
-|---------------|--------|--------------------------|
-| `/health`     | GET    | Health check             |
-| `/predict`    | POST   | Predict from images      |
-| `/model/info` | GET    | Model metadata           |
-| `/docs`       | GET    | Swagger UI               |
+| Endpoint        | Method | Description         |
+| --------------- | ------ | ------------------- |
+| `/health`     | GET    | Health check        |
+| `/predict`    | POST   | Predict from images |
+| `/model/info` | GET    | Model metadata      |
+| `/docs`       | GET    | Swagger UI          |
 
 ### Example Request
 
@@ -140,11 +140,11 @@ training:
 
 ### Environment Variables
 
-| Variable              | Description                  | Default                      |
-|-----------------------|------------------------------|------------------------------|
-| `MODEL_PATH`          | Model checkpoint path        | `checkpoints/best_model.pth` |
-| `NUM_CLASSES`         | Number of classes            | 45                           |
-| `MLFLOW_TRACKING_URI` | MLflow server URL            | `http://localhost:5000`      |
+| Variable                | Description           | Default                        |
+| ----------------------- | --------------------- | ------------------------------ |
+| `MODEL_PATH`          | Model checkpoint path | `checkpoints/best_model.pth` |
+| `NUM_CLASSES`         | Number of classes     | 45                             |
+| `MLFLOW_TRACKING_URI` | MLflow server URL     | `http://localhost:5000`      |
 
 ## Development
 
@@ -161,11 +161,11 @@ poetry run pytest
 
 ## Service URLs
 
-| Service    | URL                     | Credentials   |
-|------------|-------------------------|---------------|
-| Airflow UI | http://localhost:8080   | admin / admin |
-| MLflow UI  | http://localhost:5000   | -             |
-| API        | http://localhost:8000   | -             |
+| Service    | URL                   | Credentials   |
+| ---------- | --------------------- | ------------- |
+| Airflow UI | http://localhost:8080 | admin / admin |
+| MLflow UI  | http://localhost:5000 | -             |
+| API        | http://localhost:8000 | -             |
 
 ## License
 
