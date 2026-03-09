@@ -2,10 +2,11 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -67,12 +68,12 @@ def train_one_epoch(
 
 def validate(
     model: nn.Module,
-    data_loader: DataLoader,
+    data_loader: DataLoader[Any],
     criterion: nn.Module,
     device: torch.device,
     epoch: Optional[int] = None,
     collect_predictions: bool = False,
-) -> tuple[float, float] | tuple[float, float, list[int], list[int]]:
+) -> tuple[float, float, list[int], list[int]]:
     """Validate or evaluate the model.
 
     Args:
@@ -81,18 +82,18 @@ def validate(
         criterion: Loss function
         device: Device to run on
         epoch: Current epoch number (0-indexed), used for progress bar label
-        collect_predictions: If True, also return predictions and labels for metrics
+        collect_predictions: If True, collect predictions and labels for metrics
 
     Returns:
-        If collect_predictions=False: Tuple of (average_loss, accuracy_percentage)
-        If collect_predictions=True: Tuple of (avg_loss, accuracy, predictions, labels)
+        Tuple of (avg_loss, accuracy, predictions, labels).
+        If collect_predictions=False, predictions and labels will be empty lists.
     """
     model.eval()
     total_loss = 0.0
     correct = 0
     total = 0
-    all_preds = [] if collect_predictions else None
-    all_labels = [] if collect_predictions else None
+    all_preds: list[int] = []
+    all_labels: list[int] = []
 
     desc = f"Epoch {epoch+1} [Val]" if epoch is not None else "Evaluating"
 
@@ -120,24 +121,22 @@ def validate(
     avg_loss = total_loss / len(data_loader)
     accuracy = 100.0 * correct / total
 
-    if collect_predictions:
-        return avg_loss, accuracy, all_preds, all_labels
-    return avg_loss, accuracy
+    return avg_loss, accuracy, all_preds, all_labels
 
 
 def train_loop(
     model: nn.Module,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
+    train_loader: DataLoader[Any],
+    val_loader: DataLoader[Any],
     criterion: nn.Module,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     epochs: int,
     checkpoint_dir: Path,
-    cfg=None,
+    cfg: DictConfig | None = None,
     start_epoch: int = 0,
     best_val_acc: float = 0.0,
-) -> dict:
+) -> dict[str, Any]:
     """Run the full training loop.
 
     Args:
@@ -166,7 +165,7 @@ def train_loop(
         )
         train_losses.append(train_loss)
 
-        val_loss, val_acc = validate(model, val_loader, criterion, device, epoch)
+        val_loss, val_acc, _, _ = validate(model, val_loader, criterion, device, epoch)
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
 

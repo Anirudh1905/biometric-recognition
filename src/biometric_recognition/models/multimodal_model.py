@@ -83,7 +83,7 @@ class MultimodalBiometricModel(nn.Module):
         )
 
         # Classification
-        logits = self.classifier(fused_features)
+        logits: torch.Tensor = self.classifier(fused_features)
 
         return logits
 

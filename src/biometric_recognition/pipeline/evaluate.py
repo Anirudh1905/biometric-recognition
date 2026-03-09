@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from biometric_recognition.utils.data_utils import create_data_loaders, load_splits
 from biometric_recognition.utils.device_utils import get_device
@@ -49,7 +49,7 @@ def evaluate_model(
     """
     logging.info("Starting model evaluation...")
 
-    cfg = OmegaConf.load(config_path)
+    cfg: DictConfig = OmegaConf.load(config_path)  # type: ignore[assignment]
     splits = load_splits(splits_path)
 
     # Log data source
@@ -84,6 +84,8 @@ def evaluate_model(
 
     # Evaluate on test set using validate with collect_predictions=True
     criterion = nn.CrossEntropyLoss()
+    if test_loader is None:
+        raise ValueError("Test loader is None - test_indices must be provided")
     test_loss, test_accuracy, all_preds, all_labels = validate(
         model, test_loader, criterion, device, collect_predictions=True
     )
@@ -156,7 +158,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     setup_logging()
-    cfg = OmegaConf.load(args.config)
+    cfg: DictConfig = OmegaConf.load(args.config)  # type: ignore[assignment]
 
     # Read cached data path from metadata if provided
     data_path = None

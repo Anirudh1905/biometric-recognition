@@ -36,7 +36,7 @@ def upload_artifacts(
 
     cfg = OmegaConf.load(config_path)
 
-    s3_config = cfg.get("s3", {})
+    s3_config = OmegaConf.select(cfg, "s3", default={})
     if not s3_config.get("model_bucket"):
         logging.warning("S3 model storage not configured. Skipping upload.")
         return {"status": "skipped", "reason": "S3 not configured"}

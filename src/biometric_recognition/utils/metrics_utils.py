@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,7 +73,7 @@ def plot_confusion_matrix(
     cm = confusion_matrix(y_true, y_pred)
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+    im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
     ax.figure.colorbar(im, ax=ax)
 
     ax.set(
@@ -111,7 +112,7 @@ def get_classification_report(
     y_true: list[int],
     y_pred: list[int],
     output_dict: bool = True,
-) -> dict | str:
+) -> dict[str, Any] | str:
     """Generate classification report.
 
     Args:
@@ -122,6 +123,7 @@ def get_classification_report(
     Returns:
         Classification report as dict or string
     """
-    return classification_report(
+    result: dict[str, Any] | str = classification_report(
         y_true, y_pred, output_dict=output_dict, zero_division=0
     )
+    return result

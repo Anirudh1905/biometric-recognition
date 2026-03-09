@@ -30,7 +30,8 @@ def flatten_config(cfg: DictConfig, parent_key: str = "") -> dict[str, Any]:
     """Flatten nested OmegaConf config for MLflow params."""
     items: dict[str, Any] = {}
     for key, value in cfg.items():
-        new_key = f"{parent_key}.{key}" if parent_key else key
+        key_str = str(key)
+        new_key = f"{parent_key}.{key_str}" if parent_key else key_str
         if isinstance(value, DictConfig):
             items.update(flatten_config(value, new_key))
         else:

@@ -53,6 +53,9 @@ jobs:
       - name: Linting (flake8)
         run: poetry run flake8 src/
 
+      - name: Type checking (mypy)
+        run: poetry run mypy src/
+
   test:
     name: Test
     runs-on: ubuntu-latest

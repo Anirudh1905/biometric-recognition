@@ -108,6 +108,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     setup_logging()
-    cfg = OmegaConf.load(args.config)
+    cfg: DictConfig = OmegaConf.load(args.config)  # type: ignore[assignment]
     result = prepare_data(cfg, args.output_dir)
     print(json.dumps(result, indent=2))

@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 from omegaconf import DictConfig
@@ -28,13 +28,19 @@ def create_dataset(
     # Use override path if provided (from data_prep cache), otherwise use config
     data_path = data_path_override or cfg.data.path
 
+    # Convert DictConfig to dict for type compatibility
+    config_dict: dict[str, Any] | None = None
+    if data_path_override is None:
+        from omegaconf import OmegaConf
+        config_dict = OmegaConf.to_container(cfg, resolve=True)  # type: ignore[assignment]
+
     return BiometricDataset(
         data_path=data_path,
         num_people=cfg.data.num_people,
         fingerprint_size=tuple(cfg.data.fingerprint_size),
         iris_size=tuple(cfg.data.iris_size),
         preload=preload,
-        config=cfg if data_path_override is None else None,  # Skip S3 logic if override
+        config=config_dict,
     )
 
 
@@ -100,7 +106,9 @@ def create_stratified_splits(
             image_to_split.update(assignments)
 
     # Only include samples where all images are in the same split
-    train_indices, val_indices, test_indices = [], [], []
+    train_indices: list[int] = []
+    val_indices: list[int] = []
+    test_indices: list[int] = []
     for idx, sample in enumerate(dataset.samples):
         splits = {
             image_to_split[sample["fingerprint_path"]],
@@ -232,4 +240,5 @@ def load_splits(splits_path: str) -> dict[str, list[int]]:
         Dictionary with train/val/test indices
     """
     with open(splits_path, "r") as f:
-        return json.load(f)
+        result: dict[str, list[int]] = json.load(f)
+        return result

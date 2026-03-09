@@ -65,7 +65,7 @@ def load_model_from_checkpoint(
     iris_feature_dim: int = 32,
     fusion_hidden_dim: int = 128,
     dropout: float = 0.5,
-    device: torch.device = None,
+    device: torch.device | None = None,
 ) -> MultimodalBiometricModel:
     """Load trained model from checkpoint.
 
@@ -177,7 +177,7 @@ def predict_batch(
 
 
 def get_model_info(
-    model: MultimodalBiometricModel, model_path: str = None
+    model: MultimodalBiometricModel, model_path: str | None = None
 ) -> Dict[str, Any]:
     """Get information about the loaded model.
 
@@ -209,13 +209,13 @@ def get_model_info(
 def save_checkpoint(
     path: Path,
     epoch: int,
-    model: MultimodalBiometricModel,
+    model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     val_accuracy: float,
-    cfg=None,
-    train_losses: list[float] = None,
-    val_losses: list[float] = None,
-    val_accuracies: list[float] = None,
+    cfg: Any = None,
+    train_losses: list[float] | None = None,
+    val_losses: list[float] | None = None,
+    val_accuracies: list[float] | None = None,
 ) -> None:
     """Save model checkpoint.
 

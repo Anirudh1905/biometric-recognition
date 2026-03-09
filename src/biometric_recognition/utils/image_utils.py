@@ -64,8 +64,8 @@ def prepare_batch_from_images(
     right_iris_img: Image.Image,
     fingerprint_size: Tuple[int, int] = (128, 128),
     iris_size: Tuple[int, int] = (64, 64),
-    device: torch.device = None,
-) -> dict:
+    device: torch.device | None = None,
+) -> dict[str, torch.Tensor]:
     """Prepare a batch dictionary from PIL images.
 
     Args:
