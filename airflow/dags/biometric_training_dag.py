@@ -36,7 +36,7 @@ BASE_OUTPUT_DIR = Variable.get(
     "biometric_output_dir", default_var="/opt/airflow/outputs"
 )
 
-# Python path for the biometric_recognition package
+# Command prefix for running Python modules
 PYTHON_CMD = "python -m"
 WORKING_DIR = "/opt/airflow"
 
