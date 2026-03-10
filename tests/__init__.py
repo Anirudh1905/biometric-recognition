@@ -1,1 +1,1 @@
-# Tests package for biometric-recognition
+"""Tests package for biometric-recognition."""

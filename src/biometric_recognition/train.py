@@ -22,8 +22,12 @@ from biometric_recognition.utils.mlflow_utils import (
     mlflow_run,
 )
 
+# Compute absolute path to configs directory
+# (works with both entry points and python -m)
+_CONFIG_PATH = str(Path(__file__).resolve().parent.parent.parent / "configs")
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="config")
+
+@hydra.main(version_base=None, config_path=_CONFIG_PATH, config_name="config")
 def main(cfg: DictConfig) -> None:
     """Main training function - orchestrates the full pipeline."""
     logging.info("Starting training pipeline...")

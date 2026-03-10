@@ -55,7 +55,7 @@ configs/           # Hydra configuration
 poetry run train
 
 # With custom parameters
-python src/biometric_recognition/train.py training.epochs=20 data.batch_size=16
+poetry run train training.epochs=20 data.batch_size=16
 
 # Via Airflow
 docker-compose exec airflow-webserver airflow dags trigger biometric_training_pipeline
