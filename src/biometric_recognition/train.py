@@ -22,7 +22,8 @@ from biometric_recognition.utils.mlflow_utils import (
     mlflow_run,
 )
 
-# Compute absolute path to configs directory (works with both entry points and python -m)
+# Compute absolute path to configs directory
+# (works with both entry points and python -m)
 _CONFIG_PATH = str(Path(__file__).resolve().parent.parent.parent / "configs")
 
 
