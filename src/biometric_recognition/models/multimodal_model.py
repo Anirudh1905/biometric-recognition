@@ -36,7 +36,8 @@ class MultimodalBiometricModel(nn.Module):
             fusion_hidden_dim: Hidden dimension for fusion layer
             dropout: Dropout probability
             freeze_fingerprint_backbone: Whether to freeze fingerprint backbone
-            pretrained: Whether to use pretrained weights for backbone (set False when loading checkpoint)
+            pretrained: Whether to use pretrained weights for backbone
+                (set False when loading checkpoint)
         """
         super().__init__()
 
