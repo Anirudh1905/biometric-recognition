@@ -112,7 +112,7 @@ async def predict(
 
         # Prepare batch using shared utility
         batch = prepare_batch_from_images(
-            fingerprint_img, left_iris_img, right_iris_img, device=device
+            fingerprint_img, left_iris_img, right_iris_img
         )
 
         # Inference using shared utility

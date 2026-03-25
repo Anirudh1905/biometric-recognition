@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Any, Optional
 
 import numpy as np
 from omegaconf import DictConfig
@@ -12,36 +11,24 @@ from biometric_recognition.data import BiometricDataset
 
 
 def create_dataset(
-    cfg: DictConfig, preload: bool = True, data_path_override: Optional[str] = None
+    cfg: DictConfig, data_path: str, preload: bool = True
 ) -> BiometricDataset:
     """Create a BiometricDataset from config.
 
     Args:
         cfg: Hydra configuration
+        data_path: Local path to the dataset (caller resolves S3 paths first)
         preload: Whether to preload images into memory
-        data_path_override: Optional local path to use instead of cfg.data.path
-            (useful when data has been pre-cached by data_prep stage)
 
     Returns:
         Configured BiometricDataset instance
     """
-    # Use override path if provided (from data_prep cache), otherwise use config
-    data_path = data_path_override or cfg.data.path
-
-    # Convert DictConfig to dict for type compatibility
-    config_dict: dict[str, Any] | None = None
-    if data_path_override is None:
-        from omegaconf import OmegaConf
-
-        config_dict = OmegaConf.to_container(cfg, resolve=True)  # type: ignore
-
     return BiometricDataset(
         data_path=data_path,
         num_people=cfg.data.num_people,
         fingerprint_size=tuple(cfg.data.fingerprint_size),
         iris_size=tuple(cfg.data.iris_size),
         preload=preload,
-        config=config_dict,
     )
 
 
@@ -74,8 +61,21 @@ def create_stratified_splits(
 ) -> tuple[list[int], list[int], list[int]]:
     """Create stratified train/val/test splits ensuring no image leakage.
 
-    For each person, all unique images are assigned to splits. A sample is only
-    included if all its images (fingerprint, left/right iris) are in the same split.
+    Each sample contains 3 images (fingerprint, left iris, right iris). To prevent
+    data leakage, individual images are assigned to splits first. A sample is only
+    included if ALL its images belong to the same split.
+
+    Samples with mixed splits (e.g., fingerprint=train, iris=val) are excluded.
+    This ensures no image seen during training appears in validation/test sets,
+    preventing the model from "memorizing" specific images.
+
+    Example (person with fp1/fp2, left1, right1/right2):
+        | Sample | Images             | Splits              | Include?   |
+        |--------|--------------------|---------------------|------------|
+        | A      | fp1, left1, right1 | train, train, train | ✓ train    |
+        | B      | fp1, left1, right2 | train, train, val   | ✗ excluded |
+        | C      | fp2, left1, right1 | val, train, train   | ✗ excluded |
+        | D      | fp2, left1, right2 | val, train, val     | ✗ excluded |
 
     Args:
         dataset: The dataset to split
@@ -158,27 +158,24 @@ def create_data_loaders(
     cfg: DictConfig,
     train_indices: list[int],
     val_indices: list[int],
-    test_indices: Optional[list[int]] = None,
+    data_path: str,
+    test_indices: list[int] | None = None,
     preload: bool = True,
-    data_path_override: Optional[str] = None,
-) -> tuple[DataLoader, DataLoader, Optional[DataLoader]]:
+) -> tuple[DataLoader, DataLoader, DataLoader | None]:
     """Create data loaders from pre-computed indices.
 
     Args:
         cfg: Hydra configuration
         train_indices: Training set indices
         val_indices: Validation set indices
+        data_path: Local path to the dataset (caller resolves S3 paths first)
         test_indices: Optional test set indices
         preload: Whether to preload images
-        data_path_override: Optional local path to use instead of cfg.data.path
-            (useful when data has been pre-cached by data_prep stage)
 
     Returns:
         Tuple of (train_loader, val_loader, test_loader or None)
     """
-    dataset = create_dataset(
-        cfg, preload=preload, data_path_override=data_path_override
-    )
+    dataset = create_dataset(cfg, data_path=data_path, preload=preload)
 
     train_loader = create_data_loader(
         dataset,

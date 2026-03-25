@@ -119,17 +119,17 @@ class TestPrepareBatchFromImages:
         assert batch["left_iris"].shape == (1, 1, 32, 32)
         assert batch["right_iris"].shape == (1, 1, 32, 32)
 
-    def test_prepare_batch_with_device(
-        self, sample_pil_image_rgb, sample_pil_image_grayscale, device
+    def test_prepare_batch_returns_cpu_tensors(
+        self, sample_pil_image_rgb, sample_pil_image_grayscale
     ):
-        """Test preparing a batch and moving to device."""
+        """Test that prepared batch contains CPU tensors."""
         batch = prepare_batch_from_images(
             fingerprint_img=sample_pil_image_rgb,
             left_iris_img=sample_pil_image_grayscale,
             right_iris_img=sample_pil_image_grayscale,
-            device=device,
         )
 
-        assert batch["fingerprint"].device == device
-        assert batch["left_iris"].device == device
-        assert batch["right_iris"].device == device
+        # All tensors should be on CPU (device movement handled by predict_batch)
+        assert batch["fingerprint"].device == torch.device("cpu")
+        assert batch["left_iris"].device == torch.device("cpu")
+        assert batch["right_iris"].device == torch.device("cpu")

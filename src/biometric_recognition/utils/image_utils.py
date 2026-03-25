@@ -64,7 +64,6 @@ def prepare_batch_from_images(
     right_iris_img: Image.Image,
     fingerprint_size: Tuple[int, int] = (128, 128),
     iris_size: Tuple[int, int] = (64, 64),
-    device: torch.device | None = None,
 ) -> dict[str, torch.Tensor]:
     """Prepare a batch dictionary from PIL images.
 
@@ -74,10 +73,9 @@ def prepare_batch_from_images(
         right_iris_img: Right iris PIL Image
         fingerprint_size: Target size for fingerprint images
         iris_size: Target size for iris images
-        device: Device to move tensors to
 
     Returns:
-        Dictionary with preprocessed tensors
+        Dictionary with preprocessed tensors (on CPU)
     """
     # Preprocess images
     fingerprint_tensor = preprocess_image(
@@ -86,14 +84,8 @@ def prepare_batch_from_images(
     left_iris_tensor = preprocess_image(left_iris_img, iris_size, grayscale=True)
     right_iris_tensor = preprocess_image(right_iris_img, iris_size, grayscale=True)
 
-    batch = {
+    return {
         "fingerprint": fingerprint_tensor,
         "left_iris": left_iris_tensor,
         "right_iris": right_iris_tensor,
     }
-
-    # Move to device if specified
-    if device is not None:
-        batch = {key: tensor.to(device) for key, tensor in batch.items()}
-
-    return batch
