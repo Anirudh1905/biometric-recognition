@@ -24,6 +24,7 @@ class MultimodalBiometricModel(nn.Module):
         fusion_hidden_dim: int = 128,
         dropout: float = 0.5,
         freeze_fingerprint_backbone: bool = True,
+        pretrained: bool = True,
     ):
         """Initialize the multimodal model.
 
@@ -35,13 +36,14 @@ class MultimodalBiometricModel(nn.Module):
             fusion_hidden_dim: Hidden dimension for fusion layer
             dropout: Dropout probability
             freeze_fingerprint_backbone: Whether to freeze fingerprint backbone
+            pretrained: Whether to use pretrained weights for backbone (set False when loading checkpoint)
         """
         super().__init__()
 
         # Individual branches
         self.fingerprint_branch = FingerprintBranch(
             backbone_name=fingerprint_backbone,
-            pretrained=True,
+            pretrained=pretrained,
             freeze_backbone=freeze_fingerprint_backbone,
             feature_dim=fingerprint_feature_dim,
         )
