@@ -49,7 +49,7 @@ def prepare_data(cfg: DictConfig, output_dir: str) -> dict:
     logging.info("=" * 40)
     logging.info("Step 2: Indexing dataset...")
     logging.info("=" * 40)
-    dataset = create_dataset(cfg, preload=False, data_path_override=cached_data_path)
+    dataset = create_dataset(cfg, data_path=cached_data_path, preload=False)
     logging.info(f"Total dataset size: {len(dataset)} samples")
 
     # Step 3: Create stratified splits

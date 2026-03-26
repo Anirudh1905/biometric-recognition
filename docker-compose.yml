@@ -20,6 +20,7 @@ x-airflow-common: &airflow-common
     - airflow-logs:/opt/airflow/logs
     - pipeline-outputs:/opt/airflow/outputs
     - ~/.aws:/home/airflow/.aws:ro
+    - ~/.cache/huggingface:/home/airflow/.cache/huggingface:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on

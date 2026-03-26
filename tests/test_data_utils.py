@@ -291,7 +291,6 @@ class TestCreateDataset:
         cfg = OmegaConf.create(
             {
                 "data": {
-                    "path": "/data/path",
                     "num_people": 10,
                     "fingerprint_size": [128, 128],
                     "iris_size": [64, 64],
@@ -299,7 +298,7 @@ class TestCreateDataset:
             }
         )
 
-        create_dataset(cfg, preload=True)
+        create_dataset(cfg, data_path="/data/path", preload=True)
 
         mock_dataset_class.assert_called_once_with(
             data_path="/data/path",
@@ -307,16 +306,14 @@ class TestCreateDataset:
             fingerprint_size=(128, 128),
             iris_size=(64, 64),
             preload=True,
-            config=cfg,
         )
 
     @patch("biometric_recognition.utils.data_utils.BiometricDataset")
-    def test_create_dataset_with_path_override(self, mock_dataset_class):
-        """Test create_dataset uses path override when provided."""
+    def test_create_dataset_with_preload_false(self, mock_dataset_class):
+        """Test create_dataset with preload=False."""
         cfg = OmegaConf.create(
             {
                 "data": {
-                    "path": "s3://bucket/data",
                     "num_people": 5,
                     "fingerprint_size": [64, 64],
                     "iris_size": [32, 32],
@@ -324,7 +321,7 @@ class TestCreateDataset:
             }
         )
 
-        create_dataset(cfg, preload=False, data_path_override="/local/cache")
+        create_dataset(cfg, data_path="/local/cache", preload=False)
 
         mock_dataset_class.assert_called_once_with(
             data_path="/local/cache",
@@ -332,7 +329,6 @@ class TestCreateDataset:
             fingerprint_size=(64, 64),
             iris_size=(32, 32),
             preload=False,
-            config=None,  # config is None when override is used
         )
 
 
@@ -407,6 +403,7 @@ class TestCreateDataLoaders:
             cfg,
             train_indices=[0, 1, 2],
             val_indices=[3, 4],
+            data_path="/data",
             test_indices=None,
             preload=True,
         )
@@ -447,6 +444,7 @@ class TestCreateDataLoaders:
             cfg,
             train_indices=[0, 1, 2],
             val_indices=[3, 4],
+            data_path="/data",
             test_indices=[5, 6],
             preload=True,
         )
@@ -459,14 +457,13 @@ class TestCreateDataLoaders:
 
     @patch("biometric_recognition.utils.data_utils.create_dataset")
     @patch("biometric_recognition.utils.data_utils.create_data_loader")
-    def test_create_data_loaders_passes_data_path_override(
+    def test_create_data_loaders_passes_data_path(
         self, mock_create_loader, mock_create_dataset
     ):
-        """Test create_data_loaders passes data_path_override to create_dataset."""
+        """Test create_data_loaders passes data_path to create_dataset."""
         cfg = OmegaConf.create(
             {
                 "data": {
-                    "path": "s3://bucket/data",
                     "num_people": 5,
                     "fingerprint_size": [64, 64],
                     "iris_size": [32, 32],
@@ -484,9 +481,9 @@ class TestCreateDataLoaders:
             cfg,
             train_indices=[0, 1],
             val_indices=[2],
-            data_path_override="/local/cache",
+            data_path="/local/cache",
         )
 
         mock_create_dataset.assert_called_once_with(
-            cfg, preload=True, data_path_override="/local/cache"
+            cfg, data_path="/local/cache", preload=True
         )

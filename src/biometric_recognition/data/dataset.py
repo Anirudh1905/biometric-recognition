@@ -2,13 +2,12 @@
 
 import logging
 import os
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from biometric_recognition.utils.aws_utils import get_data_path
 from biometric_recognition.utils.image_utils import preprocess_image
 
 
@@ -22,31 +21,21 @@ class BiometricDataset(Dataset):
         fingerprint_size: Tuple[int, int] = (128, 128),
         iris_size: Tuple[int, int] = (64, 64),
         preload: bool = True,
-        config: Optional[dict] = None,
     ):
         """Initialize the dataset.
 
         Args:
-            data_path: Local path (e.g., "data/") or S3 URI (e.g., "s3://bucket/path/")
+            data_path: Local path to the dataset (caller must resolve S3 paths first)
             num_people: Number of people in the dataset
             fingerprint_size: Target size for fingerprint images
             iris_size: Target size for iris images
             preload: Whether to preload all images into memory (faster training)
-            config: Configuration dictionary for cache_dir and AWS region
         """
         self.num_people = num_people
         self.fingerprint_size = fingerprint_size
         self.iris_size = iris_size
         self.preload = preload
-
-        # Get the appropriate data path (handles S3 download if needed)
-        if config:
-            cache_dir = config.get("data", {}).get("cache_dir")
-            aws_region = config.get("aws", {}).get("region", "us-east-1")
-            self.data_path = get_data_path(data_path, cache_dir, aws_region)
-        else:
-            # Fallback - assume local path
-            self.data_path = data_path
+        self.data_path = data_path
 
         self.samples = self._load_samples()
         logging.info(f"Found {len(self.samples)} samples from {num_people} people")

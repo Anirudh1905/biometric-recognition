@@ -100,6 +100,8 @@ def load_model_from_checkpoint(
     checkpoint = torch.load(local_model_path, map_location=device, weights_only=False)
 
     # Use saved config if available, otherwise use provided parameters
+    # Always use pretrained=False when loading from checkpoint
+    # since weights come from checkpoint
     saved_config = checkpoint.get("config", {})
     if saved_config and hasattr(saved_config, "model"):
         model = MultimodalBiometricModel(
@@ -112,6 +114,7 @@ def load_model_from_checkpoint(
             fusion_hidden_dim=saved_config.model.fusion_hidden_dim,
             dropout=saved_config.model.dropout,
             freeze_fingerprint_backbone=True,
+            pretrained=False,
         ).to(device)
     else:
         # Fallback to provided parameters
@@ -123,6 +126,7 @@ def load_model_from_checkpoint(
             fusion_hidden_dim=fusion_hidden_dim,
             dropout=dropout,
             freeze_fingerprint_backbone=True,
+            pretrained=False,
         ).to(device)
 
     # Load weights

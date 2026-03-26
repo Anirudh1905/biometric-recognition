@@ -134,8 +134,6 @@ def train_loop(
     epochs: int,
     checkpoint_dir: Path,
     cfg: DictConfig | None = None,
-    start_epoch: int = 0,
-    best_val_acc: float = 0.0,
 ) -> dict[str, Any]:
     """Run the full training loop.
 
@@ -149,8 +147,6 @@ def train_loop(
         epochs: Total number of epochs
         checkpoint_dir: Directory to save checkpoints
         cfg: Optional config to save with checkpoints
-        start_epoch: Starting epoch (for resume)
-        best_val_acc: Best validation accuracy so far (for resume)
 
     Returns:
         Dictionary with training history and best accuracy
@@ -158,8 +154,9 @@ def train_loop(
     train_losses = []
     val_losses = []
     val_accuracies = []
+    best_val_acc = 0.0
 
-    for epoch in range(start_epoch, epochs):
+    for epoch in range(epochs):
         train_loss, train_acc = train_one_epoch(
             model, train_loader, criterion, optimizer, device, epoch
         )

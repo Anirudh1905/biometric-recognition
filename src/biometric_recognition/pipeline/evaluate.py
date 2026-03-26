@@ -52,11 +52,9 @@ def evaluate_model(
     cfg: DictConfig = OmegaConf.load(config_path)  # type: ignore[assignment]
     splits = load_splits(splits_path)
 
-    # Log data source
-    if cached_data_path:
-        logging.info(f"Using pre-cached data from: {cached_data_path}")
-    else:
-        logging.info(f"Data will be loaded from: {cfg.data.path}")
+    # Resolve data path: use cached path from data_prep or fall back to config
+    data_path = cached_data_path if cached_data_path else cfg.data.path
+    logging.info(f"Using data from: {data_path}")
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -72,14 +70,14 @@ def evaluate_model(
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    # Create test loader (use cached path if provided)
+    # Create test loader
     _, _, test_loader = create_data_loaders(
         cfg,
         splits["train_indices"],  # Not used but required
         splits["val_indices"],  # Not used but required
-        splits["test_indices"],
+        data_path=data_path,
+        test_indices=splits["test_indices"],
         preload=cfg.data.preload_images,
-        data_path_override=cached_data_path,
     )
 
     # Evaluate on test set using validate with collect_predictions=True
