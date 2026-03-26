@@ -47,11 +47,16 @@ def train_one_epoch(
     for batch in pbar:
         batch_device = move_batch_to_device(batch, device)
 
+        # 1. Clear the old gradients from the previous batch
         optimizer.zero_grad()
+        # 2. Forward pass: Compute the output
         outputs = model(batch_device)
+        # 3. Compute the loss
         loss = criterion(outputs, batch_device["label"])
 
+        # 4. Backward pass: Calculate gradients (stored in .grad for each parameter)
         loss.backward()
+        # 5. Update weights: Move parameters based on those gradients
         optimizer.step()
 
         total_loss += loss.item()

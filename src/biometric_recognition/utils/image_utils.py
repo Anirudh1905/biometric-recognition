@@ -48,11 +48,14 @@ def preprocess_image(
     image_array = np.array(image, dtype=np.float32) / 255.0
 
     if grayscale:
+        # image_array shape: (H, W) -> unsqueeze(0) -> (1, H, W)
         tensor = torch.FloatTensor(image_array).unsqueeze(0)  # Add channel dimension
     else:
+        # image_array shape: (H, W, C) -> permute(2, 0, 1) -> (C, H, W)
         tensor = torch.FloatTensor(image_array).permute(2, 0, 1)  # HWC to CHW
 
     if add_batch_dim:
+        # tensor shape: (C, H, W) -> unsqueeze(0) -> (1, C, H, W)
         tensor = tensor.unsqueeze(0)  # Add batch dimension
 
     return tensor
