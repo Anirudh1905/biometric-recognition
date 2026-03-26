@@ -139,7 +139,7 @@ def create_data_loader(
         indices: Indices to include in this loader
         batch_size: Batch size
         shuffle: Whether to shuffle
-        num_workers: Number of worker processes (auto-set to 0 in Airflow)
+        num_workers: Number of worker processes
 
     Returns:
         Configured DataLoader
